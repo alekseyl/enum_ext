@@ -172,7 +172,7 @@ You can call ext_enum_sets more than one time defining a superposition of alread
  
      class Request
        ...
-       mass_assign_enum( :status, association_relation: false )
+       mass_assign_enum( :status, relation: true, association_relation: false )
      end
 
      class Order
