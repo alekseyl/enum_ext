@@ -74,21 +74,19 @@ If you need select status on form and so:
 
 
 ### Enum Sets (ext_enum_sets)
-
- This method intended for creating and using some sets of enum values with similar to original enum syntax. 
  
- **Use-case** For example you have pay bills of different types, and you want to group some types in debit and credit "super-types", and have scope PayBill.debit, instance method with question mark as usual enum does pay_bill.debit? and so.
+ **Use-case** For example you have pay bills of different types, and you want to group some types in debit and credit "super-types", and have scope PayBill.debit, instance method with question mark as usual enum does pay_bill.debit?.
  
  You can do this with method **ext_enum_sets**, it creates: scopes for subsets like enum did, instance method with ? similar to enum methods, and so...
  
- I strongly recommend you to create the comment near method call, to remember what methods will be defined
+ I strongly recommend you to create special comment near method call, to remember what methods will be defined on instance, on class itself, and what scopes will be defined
   
       class Request
             ...
-           #instance non_payed?, delivery_set?, in_warehouse?
+           #instance: non_payed?, delivery_set?, in_warehouse?
            #class scopes: non_payed, delivery_set, in_warehouse
            #class scopes: with_statuses, without_statuses
-           #class non_payed_statuses, delivery_set_statuses ( = [:in_cart, :waiting_for_payment], [:ready_for_shipment, :on_delivery, :delivered].. )
+           #class: non_payed_statuses, delivery_set_statuses ( = [:in_cart, :waiting_for_payment], [:ready_for_shipment, :on_delivery, :delivered].. )
            
            ext_enum_sets :status, {
                            non_payed: [:in_cart, :waiting_for_payment],
@@ -146,9 +144,12 @@ You can call ext_enum_sets more than one time defining a superposition of alread
         request1.updated_at                     # >> ~ Time.now
         Request.respond_to?('::MassAssignEnum') # >> true
         
-        order.requests.already_payed.all?(&:already_payed?)  # >> true
+        
+        order.requests.already_payed.count          # >> N
+        order.requests.delivered.count              # >> M
         order.requests.already_payed.delivered!
-        order.requests.map(&:status).uniq                   # >> [:delivered]
+        order.requests.already_payed.count          # >> 0
+        order.requests.delivered.count              # >> N + M
 
 
 ####Rem:
