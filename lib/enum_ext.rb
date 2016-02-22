@@ -144,7 +144,7 @@ module EnumExt
   # request1.payed?                         # >> true
   # request2.payed?                         # >> true
   # request1.updated_at                     # >> Time.now
-  # Request.respond_to?('::MassAssignEnum') # >> true
+  # defined?(Request::MassAssignEnum)      # >> true
   #
   # order.requests.already_payed.all?(&:already_payed?) # >> true
   # order.requests.already_payed.delivered!
@@ -180,7 +180,7 @@ module EnumExt
     enums_names.each do |enum_name|
       enum_vals = self.send( enum_name.to_s.pluralize )
 
-      mass_ass_module = ( self.try( "::MassAssignEnum" ) || Module.new )
+      mass_ass_module = ( defined?(self::MassAssignEnum) && self::MassAssignEnum || Module.new )
 
       mass_ass_module.instance_eval do
         enum_vals.keys.each do |enum_el|
@@ -189,7 +189,7 @@ module EnumExt
           end
         end
       end
-      self.const_set( :MassAssignEnum, mass_ass_module ) unless self.try( '::MassAssignEnum' )
+      self.const_set( :MassAssignEnum, mass_ass_module ) unless defined?(self::MassAssignEnum)
 
       self::ActiveRecord_Relation.include( self::MassAssignEnum ) if relation_options[:relation]
       self::ActiveRecord_AssociationRelation.include( self::MassAssignEnum ) if relation_options[:association_relation]
