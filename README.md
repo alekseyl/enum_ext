@@ -142,7 +142,7 @@ You can call ext_enum_sets more than one time defining a superposition of alread
         request1.payed?                         # >> true
         request2.payed?                         # >> true
         request1.updated_at                     # >> ~ Time.now
-        Request.respond_to?('::MassAssignEnum') # >> true
+        defined?(Request::MassAssignEnum) # >> true
         
         
         order.requests.already_payed.count          # >> N
