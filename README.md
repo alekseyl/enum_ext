@@ -19,8 +19,17 @@ Or install it yourself as:
     $ gem install enum_ext
 
 ## Usage
-
- Let's assume we have model Request with enum *status*, and we have model Order with requests like this:
+ To use enum extension extend main model class with EnumExt module, and extend enum the way you need:
+ 
+    class SomeModel
+      extend EnumExt
+      
+      localize_enum ...
+      ext_enum_sets ...
+      mass_assign_enum ...
+    end
+ 
+ Let's review some examples, assume we have model Request representing some buying requests with enum **status**, and we have model Order with requests, representing single purchase, like this:
 
      class Request
        extend EnumExt
@@ -68,7 +77,7 @@ If you need some substitution you can go like this:
        request.delivered!
        request.t_status % {date: Time.now.to_s}  >> Delivered at: 05.02.2016
 
-If you need select status on form and so:
+If you need select status on form:
     
         f.select :status, Request.t_statuses.invert.to_a
 
@@ -83,15 +92,15 @@ If you need select status on form and so:
   
       class Request
             ...
-           #instance: non_payed?, delivery_set?, in_warehouse?
-           #class scopes: non_payed, delivery_set, in_warehouse
-           #class scopes: with_statuses, without_statuses
-           #class: non_payed_statuses, delivery_set_statuses ( = [:in_cart, :waiting_for_payment], [:ready_for_shipment, :on_delivery, :delivered].. )
+           #instance methods: non_payed?, delivery_set?, in_warehouse?
+           #scopes: non_payed, delivery_set, in_warehouse
+           #scopes: with_statuses, without_statuses
+           #class methods: non_payed_statuses, delivery_set_statuses ( = [:in_cart, :waiting_for_payment], [:ready_for_shipment, :on_delivery, :delivered].. )
            
            ext_enum_sets :status, {
                            non_payed: [:in_cart, :waiting_for_payment],
-                           delivery_set: [:ready_for_shipment, :on_delivery, :delivered]  for shipping department for example
-                           in_warehouse: [:ready_for_shipment]                            it's just for example below
+                           delivery_set: [:ready_for_shipment, :on_delivery, :delivered]  #for shipping department for example
+                           in_warehouse: [:ready_for_shipment]                            #it's just for example below
                          }
       end
 
@@ -168,7 +177,7 @@ You can call ext_enum_sets more than one time defining a superposition of alread
 
  association_relation: true - Order.first.requests.scope.new_stat! - works
  
- **but it wouldn't works without 'scope' part!** If you want to use it without 'scope' you may do it this way:
+ **but it wouldn't work without 'scope' part!** If you want to use it without 'scope' you may do it this way:
  
      class Request
        ...
