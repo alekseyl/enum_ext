@@ -20,8 +20,11 @@ module EnumExt
   #     #locale dependent example ( it dynamically use current locale ):
   #     in_cart: -> { I18n.t("request.status.in_cart") },
 
-  #     #locale dependent example with pluralization:
+  #     #locale dependent example with pluralization and lambda:
   #     payed: -> (t_self) { I18n.t("request.status.payed", count: t_self.sum ) }
+
+  #     #locale dependent example with pluralization and proc:
+  #     payed: proc{ I18n.t("request.status.payed", count: self.sum ) }
   #
   #     #locale independent:
   #     ready_for_shipment: "Ready to go!"
@@ -55,7 +58,13 @@ module EnumExt
       end
       define_method "t_#{enum_name}" do
         t = localizations[send(enum_name)]
-        ( t.try(:arity) == 1 && t.call( self ) || t.try(:call) || t).to_s
+        if t.lambda?
+          t.try(:arity) == 1 && t.call( self ) || t.try(:call)
+        elsif t.is_a?(Proc)
+          instance_eval(&t)
+        else
+          t
+        end.to_s
       end
     end
   end

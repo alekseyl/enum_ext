@@ -29,7 +29,7 @@ Or install it yourself as:
       mass_assign_enum ...
     end
  
- Let's review some examples, assume we have model Request representing some buying requests with enum **status**, and we have model Order with requests, representing single purchase, like this:
+ Let's assume that we have model Request representing some buying requests with enum **status**, and we have model Order with requests, representing single purchase, like this:
 
      class Request
        extend EnumExt
@@ -52,9 +52,12 @@ Or install it yourself as:
          #locale dependent example ( it dynamically use current locale ):
          in_cart: -> { I18n.t("request.status.in_cart") },
     
-         #locale dependent example with internal pluralization:
+         #locale dependent example with internal pluralization and lambda:
          payed: -> (t_self) { I18n.t("request.status.payed", count: t_self.sum ) }
-    
+        
+         #locale dependent example with internal pluralization and proc:
+         payed: proc { I18n.t("request.status.payed", count: sum ) }
+        
          #locale independent:
          ready_for_shipment: "Ready to go!" 
        }
