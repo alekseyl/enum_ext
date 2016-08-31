@@ -58,7 +58,7 @@ module EnumExt
       end
       define_method "t_#{enum_name}" do
         t = localizations[send(enum_name)]
-        if t.lambda?
+        if t.try(:lambda?)
           t.try(:arity) == 1 && t.call( self ) || t.try(:call)
         elsif t.is_a?(Proc)
           instance_eval(&t)
