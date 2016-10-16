@@ -57,7 +57,7 @@ module EnumExt
         localizations.try(:with_indifferent_access) || localizations
       end
       define_method "t_#{enum_name}" do
-        t = localizations[send(enum_name)]
+        t = localizations.try(:with_indifferent_access)[send(enum_name)]
         if t.try(:lambda?)
           t.try(:arity) == 1 && t.call( self ) || t.try(:call)
         elsif t.is_a?(Proc)
