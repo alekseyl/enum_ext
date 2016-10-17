@@ -122,6 +122,10 @@ module EnumExt
           self.send(enum_name) && ( enum_vals.include?( self.send(enum_name) ) || enum_vals.include?( self.send(enum_name).to_sym ))
         end
 
+        define_singleton_method( "t_#{set_name}_#{enum_name.to_s.pluralize}" ) do
+          self.send( "t_#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") ) if self.respond_to?("t_#{enum_name.to_s.pluralize}")
+        end
+
       end
 
       scope "with_#{enum_name.to_s.pluralize}", -> (sets_arr) {

@@ -70,6 +70,7 @@ Console:
        request.status      # >> payed
        request.t_status    # >> "Payed 3 dollars"
        Request.t_statuses  # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
+       Request.t__
 
 If you need some substitution you can go like this:
 
@@ -84,6 +85,7 @@ If you need select status on form:
     
         f.select :status, Request.t_statuses.invert.to_a
 
+Works with ext_enum_sets, slicing t_enum_set from original set of enum values
 
 ### Enum Sets (ext_enum_sets)
  
@@ -99,6 +101,7 @@ If you need select status on form:
            #scopes: non_payed, delivery_set, in_warehouse
            #scopes: with_statuses, without_statuses
            #class methods: non_payed_statuses, delivery_set_statuses ( = [:in_cart, :waiting_for_payment], [:ready_for_shipment, :on_delivery, :delivered].. )
+           #class methods: t_non_payed_statuses, t_delivery_set_statuses ( = {in_cart: "In cart localization" ...} )
            
            ext_enum_sets :status, {
                            non_payed: [:in_cart, :waiting_for_payment],
