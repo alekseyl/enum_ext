@@ -70,7 +70,6 @@ Console:
        request.status      # >> payed
        request.t_status    # >> "Payed 3 dollars"
        Request.t_statuses  # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
-       Request.t__
 
 If you need some substitution you can go like this:
 
@@ -86,6 +85,17 @@ If you need select status on form:
         f.select :status, Request.t_statuses.invert.to_a
 
 Works with ext_enum_sets, slicing t_enum_set from original set of enum values
+
+### Enum to_i shortcut ( enum_i )
+
+Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
+
+**Ex** 
+  enum_i :status
+  ...
+  request.payed_i # 10
+  
+
 
 ### Enum Sets (ext_enum_sets)
  

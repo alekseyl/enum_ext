@@ -69,6 +69,14 @@ module EnumExt
     end
   end
 
+  # defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
+
+  def enum_i( enum_name )
+    define_method "#{enum_name}_i" do
+      self.class.send("#{enum_name.to_s.pluralize}")[send(enum_name)].to_i
+    end
+  end
+
   # Ex ext_enum_sets
   # This method intend for creating and using some sets of enum values with similar to original enum syntax
   # it creates: scopes for subsets like enum did, instance method with ? similar to enum methods, and methods like Request.statuses
@@ -123,7 +131,7 @@ module EnumExt
         end
 
         define_singleton_method( "t_#{set_name}_#{enum_name.to_s.pluralize}" ) do
-          self.send( "t_#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") ) if self.respond_to?("t_#{enum_name.to_s.pluralize}")
+          self.send( "t_#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") )
         end
 
       end

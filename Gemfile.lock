@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    enum_ext (0.1.5)
+    enum_ext (0.1.6)
       activerecord (>= 4.1)
 
 GEM
