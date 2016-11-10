@@ -69,8 +69,6 @@ module EnumExt
     end
   end
 
-  # defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
-
   def enum_i( enum_name )
     define_method "#{enum_name}_i" do
       self.class.send("#{enum_name.to_s.pluralize}")[send(enum_name)].to_i
@@ -132,6 +130,10 @@ module EnumExt
 
         define_singleton_method( "t_#{set_name}_#{enum_name.to_s.pluralize}" ) do
           self.send( "t_#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") )
+        end
+
+        define_singleton_method( "#{set_name}_#{enum_name.to_s.pluralize}_i" ) do
+          self.send( "#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") ).values
         end
 
       end

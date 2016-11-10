@@ -96,7 +96,6 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
   request.payed_i # 10
   
 
-
 ### Enum Sets (ext_enum_sets)
  
  **Use-case** For example you have pay bills of different types, and you want to group some types in debit and credit "super-types", and have scope PayBill.debit, instance method with question mark as usual enum does pay_bill.debit?.
@@ -147,6 +146,7 @@ You can call ext_enum_sets more than one time defining a superposition of alread
                           outside_wharehouse: ( delivery_set_statuses - in_warehouse_statuses )... # any other array operations like &, + and so can be used
                        }
 
+
 ### Mass-assign ( mass_assign_enum )
  
  Syntax sugar for mass-assigning enum values. 
@@ -175,6 +175,7 @@ You can call ext_enum_sets more than one time defining a superposition of alread
         order.requests.already_payed.delivered!
         order.requests.already_payed.count          # >> 0
         order.requests.delivered.count              # >> N + M
+
 
 
 ####Rem:
