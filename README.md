@@ -7,7 +7,7 @@ EnumExt extends rails enum adding localization template, mass-assign on scopes w
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'enum_ext'
+gem 'enum_ext', '~> 0.2'
 ```
 
 And then execute:
@@ -24,7 +24,8 @@ Or install it yourself as:
     class SomeModel
       extend EnumExt
       
-      localize_enum ...
+      humanize_enum ...
+      translate_enum ...
       ext_enum_sets ...
       mass_assign_enum ...
     end
@@ -43,14 +44,11 @@ Or install it yourself as:
 
  Now let's review some examples of possible enum extensions
 
-### Localization (localize_enum) 
+### Humanization (humanize_enum) 
   
      class Request
       ...
       localize_enum :status, {
-    
-         #locale dependent example ( it dynamically use current locale ):
-         in_cart: -> { I18n.t("request.status.in_cart") },
     
          #locale dependent example with internal pluralization and lambda:
          payed: -> (t_self) { I18n.t("request.status.payed", count: t_self.sum ) }
@@ -81,10 +79,26 @@ If you need some substitution you can go like this:
        request.t_status % {date: Time.now.to_s}  >> Delivered at: 05.02.2016
 
 If you need select status on form:
-    
-        f.select :status, Request.t_statuses.invert.to_a
+       f.select :status, Request.t_statuses_options
 
-Works with ext_enum_sets, slicing t_enum_set from original set of enum values
+Works with ext_enum_sets, slicing t_enum_set from original set of enum values ( enum - status, set_name - delivery_set )
+            
+       f.select :status, Request.t_delivery_set_statuses_options
+
+### Translate (translate_enum) 
+
+Enum is translated using scope 'active_record.attributes.class_name_underscore.enum', or the given one:\
+
+       translate_enum :status, 'active_record.request.enum'
+
+Or it can be done with block either with translate or humanize:
+        
+       translate_enum :status do 
+         I18n.t( "active_record.request.enum.#{status}" )
+       end
+
+Also since we place by default enum translation in same place as enum name translation 
+human_attribute_name is redefined so it will work fine in ActiveAdmin, but you need to add translation to locale.
 
 ### Enum to_i shortcut ( enum_i )
 

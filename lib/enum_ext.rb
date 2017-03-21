@@ -12,68 +12,13 @@ require "enum_ext/version"
 # end
 #
 module EnumExt
-  # Ex using localize_enum with Request
-  # class Request
-  #  ...
-  #  localize_enum :status, {
-  #
-  #     #locale dependent example ( it dynamically use current locale ):
-  #     in_cart: -> { I18n.t("request.status.in_cart") },
-
-  #     #locale dependent example with pluralization and lambda:
-  #     payed: -> (t_self) { I18n.t("request.status.payed", count: t_self.sum ) }
-
-  #     #locale dependent example with pluralization and proc:
-  #     payed: proc{ I18n.t("request.status.payed", count: self.sum ) }
-  #
-  #     #locale independent:
-  #     ready_for_shipment: "Ready to go!"
-  #
-  #
-  #   }
-  # end
-
-  # Console:
-  #   request.sum = 3
-  #   request.payed!
-  #   request.status # >> payed
-  #   request.t_status # >> "Payed 3 dollars"
-  #   Request.t_statuses # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
-
-  #   if you need some substitution you can go like this
-  #   localize_enum :status, {
-  #         ..
-  #    delivered: "Delivered at: %{date}"
-  #   }
-  #   request.delivered!
-  #   request.t_status % {date: Time.now.to_s} # >> Delivered at: 05.02.2016
-  #
-  # Using in select:
-  #   f.select :status, Request.t_statuses.invert.to_a
-  #
-  def localize_enum( enum_name, localizations )
-    self.instance_eval do
-      define_singleton_method( "t_#{enum_name.to_s.pluralize}" ) do
-        localizations.try(:with_indifferent_access) || localizations
-      end
-      define_method "t_#{enum_name}" do
-        t = localizations.try(:with_indifferent_access)[send(enum_name)]
-        if t.try(:lambda?)
-          t.try(:arity) == 1 && t.call( self ) || t.try(:call)
-        elsif t.is_a?(Proc)
-          instance_eval(&t)
-        else
-          t
-        end.to_s
-      end
-    end
-  end
 
   def enum_i( enum_name )
     define_method "#{enum_name}_i" do
       self.class.send("#{enum_name.to_s.pluralize}")[send(enum_name)].to_i
     end
   end
+
 
   # Ex ext_enum_sets
   # This method intend for creating and using some sets of enum values with similar to original enum syntax
@@ -120,18 +65,30 @@ module EnumExt
       options.each do |set_name, enum_vals|
         scope set_name, -> { where( enum_name => self.send( enum_name.to_s.pluralize ).slice( *enum_vals.map(&:to_s) ).values ) }
 
+
         define_singleton_method( "#{set_name}_#{enum_name.to_s.pluralize}" ) do
           enum_vals
         end
 
+        # set?
         define_method "#{set_name}?" do
           self.send(enum_name) && ( enum_vals.include?( self.send(enum_name) ) || enum_vals.include?( self.send(enum_name).to_sym ))
         end
 
+        # t_set_enums
         define_singleton_method( "t_#{set_name}_#{enum_name.to_s.pluralize}" ) do
-          self.send( "t_#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") )
+          send( "t_#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") )
         end
 
+        # t_set_enums_options
+        define_singleton_method( "t_#{set_name}_#{enum_name.to_s.pluralize}_options" ) do
+          send( "t_#{set_name}_#{enum_name.to_s.pluralize}" ).invert.to_a.map do | key_val |
+            key_val[0] = key_val[0].call if key_val[0].respond_to?(:call) && key_val[0].try(:arity) < 1
+            key_val
+          end
+        end
+
+        # set_enums_i
         define_singleton_method( "#{set_name}_#{enum_name.to_s.pluralize}_i" ) do
           self.send( "#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") ).values
         end
@@ -217,6 +174,121 @@ module EnumExt
       self::ActiveRecord_Relation.include( self::MassAssignEnum ) if relation_options[:relation]
       self::ActiveRecord_AssociationRelation.include( self::MassAssignEnum ) if relation_options[:association_relation]
     end
+  end
+
+  # Ex using localize_enum with Request
+  # class Request
+  #
+  # if app doesn't need internationalization, it may use humanize_enum to make enum user friendly
+  #
+  # humanize_enum :status, {
+  #     #locale dependent example with pluralization and lambda:
+  #     payed: -> (t_self) { I18n.t("request.status.payed", count: t_self.sum ) }
+  #
+  #     #locale dependent example with pluralization and proc:
+  #     payed: proc{ I18n.t("request.status.payed", count: self.sum ) }
+  #
+  #     #locale independent:
+  #     ready_for_shipment: "Ready to go!"
+  #   }
+  # end
+  #
+  # Example with block:
+  #
+  # humanize_enum :status do
+  #  I18n.t("scope.#{status}")
+  # end
+
+  # Console:
+  #   request.sum = 3
+  #   request.payed!
+  #   request.status # >> payed
+  #   request.t_status # >> "Payed 3 dollars"
+  #   Request.t_statuses # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
+
+  #   if you need some substitution you can go like this
+  #   localize_enum :status, {
+  #         ..
+  #    delivered: "Delivered at: %{date}"
+  #   }
+  #   request.delivered!
+  #   request.t_status % {date: Time.now.to_s} # >> Delivered at: 05.02.2016
+  #
+  # Using in select:
+  #   f.select :status, Request.t_statuses_options
+  #
+  # Rem: select options breaks when using lambda
+
+  def humanize_enum( *args, &block )
+    enum_name = args.shift
+    localizations = args.pop
+    enum_pural = enum_name.to_s.pluralize
+
+    self.instance_eval do
+
+      #t_enums
+      define_singleton_method( "t_#{enum_pural}" ) do
+        # if localization is abscent than block must be given
+        localizations.try(:with_indifferent_access) || localizations ||
+            send(enum_pural).keys.map {|en| [en, self.new( {enum_name => en} ).send("t_#{enum_name}")] }.to_h
+      end
+
+      #t_enums_options
+      define_singleton_method( "t_#{enum_pural}_options" ) do
+        send("t_#{enum_pural}").invert.to_a.map do | key_val |
+          # since all procs in t_enum are evaluated in context of a record than it's not always possible to create select options
+          key_val[0] = ( key_val[0].try(:call) || "Cannot create option for #{key_val[0]}" ) if key_val[0].respond_to?(:call) && key_val[0].try(:arity) < 1
+          key_val
+        end
+      end
+
+      #t_enum
+      define_method "t_#{enum_name}" do
+        t = block || localizations.try(:with_indifferent_access)[send(enum_name)]
+        if t.try(:lambda?)
+          t.try(:arity) == 1 && t.call( self ) || t.try(:call)
+        elsif t.is_a?(Proc)
+          instance_eval(&t)
+        else
+          t
+        end.to_s
+      end
+    end
+  end
+  alias localize_enum humanize_enum
+
+  # Simple way to translate enum.
+  # It use either given scope as second argument, or generated activerecord.attributes.model_name_underscore.enum_name
+  # If block is given than no scopes are taken in consider
+  def translate_enum( *args, &block )
+    enum_name = args.shift
+    t_scope = args.pop || "activerecord.attributes.#{self.name.underscore}.#{enum_name}"
+
+    translated_enums << enum_name.to_sym
+
+    if block_given?
+      humanize_enum( enum_name, &block )
+    else
+      humanize_enum( enum_name, send(enum_name.to_s.pluralize).keys.map{|en| [ en, Proc.new{ I18n.t("#{t_scope}.#{en}") }] }.to_h )
+    end
+
+  end
+
+  # It useful for Active Admin, since it use by default human_attribute_name
+  # to translate or humanize elements, if no translation given.
+  # So when enums translated it breaks default human_attribute_name since it's search I18n scope from
+  def human_attribute_name( name, options = {} )
+    enum_translated?(name) ? super( "t_#{name}", options ) : super( name, options )
+  end
+
+  # helper to determine is attribute is translated enum
+  def enum_translated?( name )
+    translated_enums.include?( name.to_sym )
+  end
+
+  private
+  def translated_enums
+    @translated_enums ||= Set.new
   end
 
 end
