@@ -61,12 +61,14 @@ module EnumExt
   #                      outside_wharehouse: ( delivery_set_statuses - in_warehouse_statuses )... any other array operations like &, + and so can be used
   #                   }
   def ext_enum_sets( enum_name, options )
+    enum_plural = enum_name.to_s.pluralize
+
     self.instance_eval do
       options.each do |set_name, enum_vals|
-        scope set_name, -> { where( enum_name => self.send( enum_name.to_s.pluralize ).slice( *enum_vals.map(&:to_s) ).values ) }
+        scope set_name, -> { where( enum_name => self.send( enum_plural ).slice( *enum_vals.map(&:to_s) ).values ) }
 
 
-        define_singleton_method( "#{set_name}_#{enum_name.to_s.pluralize}" ) do
+        define_singleton_method( "#{set_name}_#{enum_plural}" ) do
           enum_vals
         end
 
@@ -76,33 +78,33 @@ module EnumExt
         end
 
         # t_set_enums
-        define_singleton_method( "t_#{set_name}_#{enum_name.to_s.pluralize}" ) do
-          send( "t_#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") )
+        define_singleton_method( "t_#{set_name}_#{enum_plural}" ) do
+          send( "t_#{enum_plural}" ).slice( *self.send("#{set_name}_#{enum_plural}") )
         end
 
         # t_set_enums_options
-        define_singleton_method( "t_#{set_name}_#{enum_name.to_s.pluralize}_options" ) do
-          send( "t_#{set_name}_#{enum_name.to_s.pluralize}" ).invert.to_a.map do | key_val |
+        define_singleton_method( "t_#{set_name}_#{enum_plural}_options" ) do
+          send( "t_#{set_name}_#{enum_plural}" ).invert.to_a.map do | key_val |
             key_val[0] = key_val[0].call if key_val[0].respond_to?(:call) && key_val[0].try(:arity) < 1
             key_val
           end
         end
 
         # set_enums_i
-        define_singleton_method( "#{set_name}_#{enum_name.to_s.pluralize}_i" ) do
-          self.send( "#{enum_name.to_s.pluralize}" ).slice( *self.send("#{set_name}_#{enum_name.to_s.pluralize}") ).values
+        define_singleton_method( "#{set_name}_#{enum_plural}_i" ) do
+          self.send( "#{enum_plural}" ).slice( *self.send("#{set_name}_#{enum_plural}") ).values
         end
 
       end
 
-      scope "with_#{enum_name.to_s.pluralize}", -> (sets_arr) {
-        where( enum_name => self.send( enum_name.to_s.pluralize ).slice(
-                   *sets_arr.map{|set_name| self.try( "#{set_name}_#{enum_name.to_s.pluralize}" ) || set_name }.flatten.uniq.map(&:to_s) ).values )
-      } unless respond_to?("with_#{enum_name.to_s.pluralize}")
+      scope "with_#{enum_plural}", -> (sets_arr) {
+        where( enum_name => self.send( enum_plural ).slice(
+                   *sets_arr.map{|set_name| self.try( "#{set_name}_#{enum_plural}" ) || set_name }.flatten.uniq.map(&:to_s) ).values )
+      } unless respond_to?("with_#{enum_plural}")
 
-      scope "without_#{enum_name.to_s.pluralize}", -> (sets_arr) {
-        where.not( id: self.send("with_#{enum_name.to_s.pluralize}", sets_arr) )
-      } unless respond_to?("without_#{enum_name.to_s.pluralize}")
+      scope "without_#{enum_plural}", -> (sets_arr) {
+        where.not( id: self.send("with_#{enum_plural}", sets_arr) )
+      } unless respond_to?("without_#{enum_plural}")
     end
   end
 
@@ -230,7 +232,7 @@ module EnumExt
       define_singleton_method( "t_#{enum_pural}" ) do
         # if localization is abscent than block must be given
         localizations.try(:with_indifferent_access) || localizations ||
-            send(enum_pural).keys.map {|en| [en, self.new( {enum_name => en} ).send("t_#{enum_name}")] }.to_h
+            send(enum_pural).keys.map {|en| [en, self.new( {enum_name => en} ).send("t_#{enum_name}")] }.to_h.with_indifferent_access
       end
 
       #t_enums_options
