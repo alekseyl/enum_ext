@@ -206,8 +206,6 @@ class:
     request1.paid?                         # >> true
     request2.paid?                         # >> true
     request1.updated_at                     # >> ~ Time.now
-    defined?(Request::MassAssignEnum) # >> true
-    
     
     order.requests.already_paid.count          # >> N
     order.requests.delivered.count              # >> M
@@ -215,8 +213,6 @@ class:
     order.requests.already_paid.count          # >> 0
     order.requests.delivered.count              # >> N + M
 ```
-
-
 
 ## Tests
    rake test
