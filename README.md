@@ -7,7 +7,7 @@ EnumExt extends rails enum adding localization/translation and it's helpers, mas
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'enum_ext', '~> 0.2'
+gem 'enum_ext', '~> 0.3'
 ```
 
 And then execute:
