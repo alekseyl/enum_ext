@@ -1,6 +1,6 @@
 # EnumExt
 
-EnumExt extends rails enum adding localization template, mass-assign on scopes with bang and some sets logic over existing enum.
+EnumExt extends rails enum adding localization/translation and it's helpers, mass-assign on scopes with bang, advanced sets logic over existing.
 
 ## Installation
 
@@ -24,18 +24,20 @@ Or install it yourself as:
     class SomeModel
       extend EnumExt
       
+      enum_i ...
       humanize_enum ...
       translate_enum ...
       ext_enum_sets ...
       mass_assign_enum ...
     end
  
- Let's assume that we have model Request representing some buying requests with enum **status**, and we have model Order with requests, representing single purchase, like this:
+ Let's assume that we have model Request representing some buying requests with enum **status**, and we have model Order with requests, 
+ representing single purchase, like this:
 
      class Request
        extend EnumExt
        belongs_to :order
-       enum status: [ :in_cart, :waiting_for_payment, :payed, :ready_for_shipment, :on_delivery, :delivered ]
+       enum status: [ :in_cart, :waiting_for_payment, :paid, :ready_for_shipment, :on_delivery, :delivered ]
      end
 
      class Order
@@ -46,48 +48,65 @@ Or install it yourself as:
 
 ### Humanization (humanize_enum) 
   
-     class Request
-      ...
-      localize_enum :status, {
+  if app doesn't need internationalization, it may use humanize_enum to make enum user friendly
+
+  ```  
+  humanize_enum :status, {
+      #locale dependent example with pluralization and lambda:
+      in_cart: -> (t_self) { I18n.t("request.status.in_cart", count: t_self.sum ) }
+  
+      #locale dependent example with pluralization and proc:
+      paid: Proc.new{ I18n.t("request.status.paid", count: self.sum ) }
+  
+      #locale independent:
+      ready_for_shipment: "Ready to go!"
+    }
+  end
+  ```  
+   
+  This call adds to instance:
+   - t_in_cart, t_paid, t_ready_for_shipment
+  
+  adds to class:
+   - t_statuses - as given or generated values
+   - t_statuses_options - translated enum values options for select input
+   - t_statuses_options_i - same as above but use int values with translations works for ActiveAdmin filters for instance
+
+  
+  Example with block:
+
+  ```
+  humanize_enum :status do
+   I18n.t("scope.#{status}")
+  end
+  ```
+  
+  Example for select:
+  
+  ```
+    f.select :status, Request.t_statuses_options
+  ```
+  
+  in Active Admin filters
+  ```
+    filter :status, as: :select, label: 'Status', collection: Request.t_statuses_options_i
+  ```
+ 
+  
+  Rem: select options may break when using lambda() or proc with instance method, but will survive with block
+  
+  Console:
+  ```
+    request.sum = 3
+    request.paid!
+    request.status     # >> paid
+    request.t_status   # >> "paid 3 dollars"
+    Request.t_statuses # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
+  ```  
     
-         #locale dependent example with internal pluralization and lambda:
-         payed: -> (t_self) { I18n.t("request.status.payed", count: t_self.sum ) }
-        
-         #locale dependent example with internal pluralization and proc:
-         payed: proc { I18n.t("request.status.payed", count: sum ) }
-        
-         #locale independent:
-         ready_for_shipment: "Ready to go!" 
-       }
-     end
-
-Console:
-
-       request.sum = 3
-       request.payed!
-       request.status      # >> payed
-       request.t_status    # >> "Payed 3 dollars"
-       Request.t_statuses  # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
-
-If you need some substitution you can go like this:
-
-       localize_enum :status, {
-             ..
-        delivered: "Delivered at: %{date}"
-       }
-       request.delivered!
-       request.t_status % {date: Time.now.to_s}  >> Delivered at: 05.02.2016
-
-If you need select status on form:
-       f.select :status, Request.t_statuses_options
-
-Works with ext_enum_sets, slicing t_enum_set from original set of enum values ( enum - status, set_name - delivery_set )
-            
-       f.select :status, Request.t_delivery_set_statuses_options
-
 ### Translate (translate_enum) 
 
-Enum is translated using scope 'active_record.attributes.class_name_underscore.enum', or the given one:\
+Enum is translated using scope 'active_record.attributes.class_name_underscore.enum_plural', or the given one:
 
        translate_enum :status, 'active_record.request.enum'
 
@@ -97,9 +116,6 @@ Or it can be done with block either with translate or humanize:
          I18n.t( "active_record.request.enum.#{status}" )
        end
 
-Also since we place by default enum translation in same place as enum name translation 
-human_attribute_name is redefined so it will work fine in ActiveAdmin, but you need to add translation to locale.
-
 ### Enum to_i shortcut ( enum_i )
 
 Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
@@ -107,125 +123,101 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
 **Ex** 
   enum_i :status
   ...
-  request.payed_i # 10
+  request.paid_i # 10
   
 
 ### Enum Sets (ext_enum_sets)
  
- **Use-case** For example you have pay bills of different types, and you want to group some types in debit and credit "super-types", and have scope PayBill.debit, instance method with question mark as usual enum does pay_bill.debit?.
+ **Use-case** For example you have pay bills of different types, and you want to group some types in debit and credit "super-types", 
+ and have scope PayBill.debit, instance method with question mark as usual enum does pay_bill.debit?.
  
- You can do this with method **ext_enum_sets**, it creates: scopes for subsets like enum did, instance method with ? similar to enum methods, and so...
+ You can do this with method **ext_enum_sets** it creates:  scopes for subsets, instance method with ? and some class methods helpers
+   
+   For this call:
+   ```
+     ext_enum_sets :status, {
+                     delivery_set: [:ready_for_shipment, :on_delivery, :delivered] # for shipping department for example
+                     in_warehouse: [:ready_for_shipment]  # this just for superposition example  below
+                   }
+   ```
+   
+   it will generate:
+     instance:
+       methods: delivery_set?, in_warehouse?
+     class:
+       named scopes: delivery_set, in_warehouse
+       parametrized scopes: with_statuses, without_statuses
+       class helpers:
+         - delivery_set_statuses (=[:ready_for_shipment, :on_delivery, :delivered] ), in_warehouse_statuses
+         - delivery_set_statuses_i (= [3,4,5]), in_warehouse_statuses_i (=[3])
+       class translation helpers ( started with t_... )
+         for select inputs purposes:
+         - t_delivery_set_statuses_options (= [['translation or humanization', :ready_for_shipment] ...])
+         same as above but with integer as value ( for example to use in Active admin filters )
+         - t_delivery_set_statuses_options_i (= [['translation or humanization', 3] ...])
+ ```
+   Console:
+    request.on_delivery!
+    request.delivery_set?                    # >> true
  
- I strongly recommend you to create special comment near method call, to remember what methods will be defined on instance, on class itself, and what scopes will be defined
-  
-      class Request
-            ...
-           #instance methods: non_payed?, delivery_set?, in_warehouse?
-           #scopes: non_payed, delivery_set, in_warehouse
-           #scopes: with_statuses, without_statuses
-           #class methods: non_payed_statuses, delivery_set_statuses ( = [:in_cart, :waiting_for_payment], [:ready_for_shipment, :on_delivery, :delivered].. )
-           #class methods: t_non_payed_statuses, t_delivery_set_statuses ( = {in_cart: "In cart localization" ...} )
-           
-           ext_enum_sets :status, {
-                           non_payed: [:in_cart, :waiting_for_payment],
-                           delivery_set: [:ready_for_shipment, :on_delivery, :delivered]  #for shipping department for example
-                           in_warehouse: [:ready_for_shipment]                            #it's just for example below
-                         }
-      end
+    Request.delivery_set.exists?(request)    # >> true
+    Request.in_warehouse.exists?(request)    # >> false
+   
+    Request.delivery_set_statuses            # >> [:ready_for_shipment, :on_delivery, :delivered]
+   
+    Request.with_statuses( :payed, :delivery_set )    # >> :payed and [:ready_for_shipment, :on_delivery, :delivered] requests
+    Request.without_statuses( :payed )                # >> scope for all requests with statuses not eq to :payed
+    Request.without_statuses( :payed, :in_warehouse ) # >> scope all requests with statuses not eq to :payed or :ready_for_shipment
+ ```  
+ 
+   Rem:
+    ext_enum_sets can be called twice defining a superposition of already defined sets ( considering previous example ):
+    
+```
+    ext_enum_sets :status, {
+                outside_wharehouse: ( delivery_set_statuses - in_warehouse_statuses )... any other array operations like &, + and so can be used
+              }
+```
 
-Console:
-
-        request.waiting_for_payment!
-        request.non_payed?                     # >> true
-        
-        Request.non_payed.exists?(request)     # >> true
-        Request.delivery_set.exists?(request)  # >> false
-        
-        Request.non_payed_statuses             # >> [:in_cart, :waiting_for_payment]
-        
-        Request.with_statuses( :payed, :in_cart )       # >> scope for all in_cart and payed requests
-        Request.without_statuses( :payed )              # >> scope for all requests with statuses not eq to payed
-        Request.without_statuses( :payed, :non_payed )  # >> scope all requests with statuses not eq to payed and in_cart + waiting_for_payment
-
-
-#### Rem:
-
-You can call ext_enum_sets more than one time defining a superposition of already defined sets:
-
-      class Request
-        ...
-        ext_enum_sets (... first time you call ext_enum_sets )
-        ext_enum_sets :status, {
-                          already_payed: ( [:payed] | delivery_set_statuses ),
-                          outside_wharehouse: ( delivery_set_statuses - in_warehouse_statuses )... # any other array operations like &, + and so can be used
-                       }
-
-
+ 
 ### Mass-assign ( mass_assign_enum )
  
  Syntax sugar for mass-assigning enum values. 
  
- **Use-case:** it's often case when I need bulk update without callbacks, so it's gets frustrating to repeat: some_scope.update_all(status: Request.statuses[:new_status], update_at: Time.now)
- If you need callbacks you can do like this: some_scope.each(&:new_stat!) but if you don't need callbacks and you has hundreds and thousands of records to change at once you need update_all
+ **Use-case:** it's often case when I need bulk update without callbacks, so it's gets frustrating to repeat: 
+ ```
+    some_scope.update_all(status: Request.statuses[:new_status], update_at: Time.now)
+ ```
+ If you need callbacks you can do like this: some_scope.each(&:new_stat!) but if you don't need callbacks and you 
+ has hundreds and thousands of records to change at once you need update_all
 
-     class Request
-       ...
-       mass_assign_enum( :status )
-     end
+ ```
+    mass_assign_enum( :status )
+ ```
 
  Console:
- 
-        request1.in_cart!
-        request2.waiting_for_payment!
-        Request.non_payed.payed!
-        request1.payed?                         # >> true
-        request2.payed?                         # >> true
-        request1.updated_at                     # >> ~ Time.now
-        defined?(Request::MassAssignEnum) # >> true
-        
-        
-        order.requests.already_payed.count          # >> N
-        order.requests.delivered.count              # >> M
-        order.requests.already_payed.delivered!
-        order.requests.already_payed.count          # >> 0
-        order.requests.delivered.count              # >> N + M
 
-
-
-####Rem:
-
- **mass_assign_enum** accepts additional options as last argument. Calling  
- 
-    mass_assign_enum( :status ) 
- 
- actually is equal to call:
-  
-    mass_assign_enum( :status, { relation: true, association_relation: true } )
-
-###### Meaning:
-
- relation: true - Request.some_scope.payed! - works
-
- association_relation: true - Order.first.requests.scope.new_stat! - works
- 
- **but it wouldn't work without 'scope' part!** If you want to use it without 'scope' you may do it this way:
- 
-     class Request
-       ...
-       mass_assign_enum( :status, relation: true, association_relation: false )
-     end
-
-     class Order
-      has_many :requests, extend: Request::MassAssignEnum
-     end
+```
+    request1.in_cart!
+    request2.waiting_for_payment!
+    Request.non_paid.paid!
+    request1.paid?                         # >> true
+    request2.paid?                         # >> true
+    request1.updated_at                     # >> ~ Time.now
+    defined?(Request::MassAssignEnum) # >> true
     
-     Order.first.requests.respond_to?(:in_cart!)  # >> true
+    
+    order.requests.already_paid.count          # >> N
+    order.requests.delivered.count              # >> M
+    order.requests.already_paid.delivered!
+    order.requests.already_paid.count          # >> 0
+    order.requests.delivered.count              # >> N + M
+```
 
-#### Rem2:
- You can mass-assign more than one enum ::MassAssignEnum module will contain mass assign for both. It will break nothing since all enum name must be uniq across model
+
 
 ## Tests
- Right now goes without automated tests :(
+   rake test
  
 ## Development
 
@@ -239,3 +231,6 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/alekse
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
+### Thanks
+
+Thanks for the star vzamanillo, it inspires me to do mass refactor and gracefully cover code in this gem by tests.

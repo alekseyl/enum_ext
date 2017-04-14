@@ -1,0 +1,11 @@
+en:
+  activerecord:
+    attributes:
+      enum_ext_test/enum_t:
+        test_types:
+          unit_test: unittest
+          spec: spec tests
+          controller: controller tests
+          integration: integration tests
+          view: viewer tests
+

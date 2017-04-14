@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["alekseyl"]
   spec.email         = ["leshchuk@gmail.com"]
 
-  spec.summary       = %q{Enum extension, ads enum sets, mass-assign for them, localization for them.}
-  spec.description   = %q{Enum extension, ads enum sets, mass-assign for them, localization for them.}
+  spec.summary       = %q{Enum extension, ads enum sets, mass-assign, localization, and some sugar helpers.}
+  spec.description   = %q{Enum extension, ads enum sets, mass-assign, localization, and some sugar helpers.}
   spec.homepage      = "https://github.com/alekseyl/enum_ext"
   spec.license       = "MIT"
 
@@ -19,8 +19,11 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "activerecord", ">=4.1"
+  spec.add_dependency 'activerecord', '>=4.1'
 
-  spec.add_development_dependency "bundler", "~> 1.11"
-  spec.add_development_dependency "rake", "~> 10.0"
+  spec.add_development_dependency 'minitest'
+  spec.add_development_dependency 'bundler', '~> 1.11'
+  spec.add_development_dependency 'rake', '~> 10.0'
+  spec.add_development_dependency 'rails-i18n', '>=4'
+  spec.add_development_dependency 'sqlite3'
 end

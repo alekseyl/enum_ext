@@ -1,0 +1,11 @@
+ru:
+  activerecord:
+    attributes:
+      enum_ext_test/enum_t:
+        test_types:
+          unit_test: Юнит тест
+          spec: Спеки
+          controller: Контроллер тест
+          integration: Интеграционые тесты
+          view: Тесты вьюшек ( что конечно перебор )
+
