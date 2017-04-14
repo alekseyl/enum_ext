@@ -140,20 +140,20 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
                      in_warehouse: [:ready_for_shipment]  # this just for superposition example  below
                    }
    ```
-   it will generate:
-     instance:
-       - methods: delivery_set?, in_warehouse?
-     class:
-       - named scopes: delivery_set, in_warehouse
-       - parametrized scopes: with_statuses, without_statuses
-       - class helpers:
-         - delivery_set_statuses (=[:ready_for_shipment, :on_delivery, :delivered] ), in_warehouse_statuses
-         - delivery_set_statuses_i (= [3,4,5]), in_warehouse_statuses_i (=[3])
-       - class translation helpers ( started with t_... )
-         - for select inputs purposes:
-            - t_delivery_set_statuses_options (= [['translation or humanization', :ready_for_shipment] ...])
-         - same as above but with integer as value ( for example to use in Active admin filters )
-            - t_delivery_set_statuses_options_i (= [['translation or humanization', 3] ...])
+it will generate:
+instance:
+    - methods: delivery_set?, in_warehouse?
+class:
+    - named scopes: delivery_set, in_warehouse
+    - parametrized scopes: with_statuses, without_statuses
+    - class helpers:
+    - delivery_set_statuses (=[:ready_for_shipment, :on_delivery, :delivered] ), in_warehouse_statuses
+    - delivery_set_statuses_i (= [3,4,5]), in_warehouse_statuses_i (=[3])
+    - class translation helpers ( started with t_... )
+      - for select inputs purposes:
+        - t_delivery_set_statuses_options (= [['translation or humanization', :ready_for_shipment] ...])
+      - same as above but with integer as value ( for example to use in Active admin filters )
+        - t_delivery_set_statuses_options_i (= [['translation or humanization', 3] ...])
             
  ```
    Console:
