@@ -1,6 +1,6 @@
 # EnumExt
 
-EnumExt extends rails enum adding localization/translation and it's helpers, mass-assign on scopes with bang, advanced sets logic over existing.
+EnumExt extends rails enum with localization/translation and it's helpers, mass-assign on scopes with bang, advanced sets logic over existing enum.
 
 ## Installation
 
