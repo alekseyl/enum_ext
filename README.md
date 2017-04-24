@@ -19,7 +19,7 @@ Or install it yourself as:
     $ gem install enum_ext
 
 ## Usage
- To use enum extension extend main model class with EnumExt module, and extend enum the way you need:
+ To use enum extension extend main model class with EnumExt module, and make your own extantion to your enums the way you need:
  
     class SomeModel
       extend EnumExt
