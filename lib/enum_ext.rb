@@ -278,4 +278,12 @@ module EnumExt
     end
   end
 
+  # human_attribute_name is redefined for automatization like this:
+  # p #{object.class.human_attribute_name( attr_name )}:
+  # p =object.send(attr_name)
+  def human_attribute_name( name, options = {} )
+    name[0..1] == 't_' && column_names.include?(name[2..-1]) ? super( name[2..-1], options ) : super( name, options )
+  end
+
+
 end

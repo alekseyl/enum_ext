@@ -203,6 +203,12 @@ class EnumExtTest < ActiveSupport::TestCase
     ema.enum_ext_mocks.controller!
     assert( EnumMA.controller.exists?( ema_child.id ) )
   end
+
+  test 'humanize_attr class method' do
+    I18n.locale = :ru
+    EnumTH = build_mock_class
+    assert( EnumTH.human_attribute_name( :t_test_type ) == EnumTH.human_attribute_name( :test_type ) )
+  end
 end
 
 
