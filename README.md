@@ -1,13 +1,13 @@
 # EnumExt
 
-EnumExt extends rails enum adding localization/translation and it's helpers, mass-assign on scopes with bang, advanced sets logic over existing.
+EnumExt extends rails enum with localization/translation and it's helpers, mass-assign on scopes with bang, advanced sets logic over existing enum.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'enum_ext', '~> 0.2'
+gem 'enum_ext', '~> 0.3'
 ```
 
 And then execute:
@@ -19,7 +19,7 @@ Or install it yourself as:
     $ gem install enum_ext
 
 ## Usage
- To use enum extension extend main model class with EnumExt module, and extend enum the way you need:
+ To use enum extension extend main model class with EnumExt module, and make your own extantion to your enums the way you need:
  
     class SomeModel
       extend EnumExt
@@ -140,21 +140,23 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
                      in_warehouse: [:ready_for_shipment]  # this just for superposition example  below
                    }
    ```
-   
-   it will generate:
-     instance:
-       - methods: delivery_set?, in_warehouse?
-     class:
-       - named scopes: delivery_set, in_warehouse
-       - parametrized scopes: with_statuses, without_statuses
-       - class helpers:
-         - delivery_set_statuses (=[:ready_for_shipment, :on_delivery, :delivered] ), in_warehouse_statuses
-         - delivery_set_statuses_i (= [3,4,5]), in_warehouse_statuses_i (=[3])
-       - class translation helpers ( started with t_... )
-         - for select inputs purposes:
-            - t_delivery_set_statuses_options (= [['translation or humanization', :ready_for_shipment] ...])
-         - same as above but with integer as value ( for example to use in Active admin filters )
-            - t_delivery_set_statuses_options_i (= [['translation or humanization', 3] ...])
+it will generate:
+```
+instance:
+    - methods: delivery_set?, in_warehouse?
+
+class:
+    - named scopes: delivery_set, in_warehouse
+    - parametrized scopes: with_statuses, without_statuses
+    class helpers:
+        - delivery_set_statuses (=[:ready_for_shipment, :on_delivery, :delivered] ), in_warehouse_statuses
+        - delivery_set_statuses_i (= [3,4,5]), in_warehouse_statuses_i (=[3])
+
+     class translation helpers ( started with t_... ):
+        - t_delivery_set_statuses_options (= [['translation or humanization', :ready_for_shipment] ...] ) for select inputs purposes
+        - t_delivery_set_statuses_options_i (= [['translation or humanization', 3] ...]) same as above but with integer as value ( for example to use in Active admin filters )
+```
+
  ```
    Console:
     request.on_delivery!
@@ -204,8 +206,6 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
     request1.paid?                         # >> true
     request2.paid?                         # >> true
     request1.updated_at                     # >> ~ Time.now
-    defined?(Request::MassAssignEnum) # >> true
-    
     
     order.requests.already_paid.count          # >> N
     order.requests.delivered.count              # >> M
@@ -213,8 +213,6 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name]
     order.requests.already_paid.count          # >> 0
     order.requests.delivered.count              # >> N + M
 ```
-
-
 
 ## Tests
    rake test
