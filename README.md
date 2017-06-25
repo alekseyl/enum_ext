@@ -191,7 +191,7 @@ class:
     some_scope.update_all(status: Request.statuses[:new_status], update_at: Time.now)
  ```
  If you need callbacks you can do like this: some_scope.each(&:new_stat!) but if you don't need callbacks and you 
- has hundreds and thousands of records to change at once you need update_all
+ have hundreds and thousands of records to change at once you need update_all
 
  ```
     mass_assign_enum( :status )
