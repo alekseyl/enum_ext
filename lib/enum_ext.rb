@@ -14,7 +14,7 @@ require 'enum_ext/version'
 module EnumExt
 
   # defines shortcut for getting integer value of enum.
-  # for enum named status will generate:
+  # for enum named 'status' will generate:
   # instance.status_i
   def enum_i( enum_name )
     define_method "#{enum_name}_i" do
@@ -32,7 +32,7 @@ module EnumExt
   # For this call:
   #   ext_enum_sets :status, {
   #                   delivery_set: [:ready_for_shipment, :on_delivery, :delivered] # for shipping department for example
-  #                   in_warehouse: [:ready_for_shipment]  # this just for superposition example  below
+  #                   in_warehouse: [:ready_for_shipment]       # this scope is just for superposition example below
   #                 }
   #
   # it will generate:
@@ -187,7 +187,7 @@ module EnumExt
   #  I18n.t("scope.#{status}")
   # end
   #
-  # in select:
+  # in views select:
   #   f.select :status, Request.t_statuses_options
   #
   # in select in Active Admin filter
@@ -237,6 +237,10 @@ module EnumExt
         end.to_s
       end
 
+      define_method "t_#{enum_name}=" do |new_val|
+        send("#{enum_name}=", new_val)
+      end
+
       #protected?
       define_singleton_method( "t_#{enum_plural}_options_raw_i" ) do |t_enum_set|
         send("t_#{enum_plural}_options_raw", t_enum_set ).map do | key_val |
@@ -258,7 +262,6 @@ module EnumExt
           key_val
         end
       end
-
     end
   end
   alias localize_enum humanize_enum
@@ -278,10 +281,11 @@ module EnumExt
     end
   end
 
-  # human_attribute_name is redefined for automatization like this:
+  # human_attribute_name is redefined for automation like this:
   # p #{object.class.human_attribute_name( attr_name )}:
-  # p =object.send(attr_name)
+  # p object.send(attr_name)
   def human_attribute_name( name, options = {} )
+    # if name starts from t_ and there is a column with the last part then ...
     name[0..1] == 't_' && column_names.include?(name[2..-1]) ? super( name[2..-1], options ) : super( name, options )
   end
 

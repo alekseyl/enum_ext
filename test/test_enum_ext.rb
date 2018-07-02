@@ -208,6 +208,24 @@ class EnumExtTest < ActiveSupport::TestCase
     I18n.locale = :ru
     EnumTH = build_mock_class
     assert( EnumTH.human_attribute_name( :t_test_type ) == EnumTH.human_attribute_name( :test_type ) )
+    assert( 'Тип теста' == EnumTH.human_attribute_name( :t_test_type ) )
+  end
+
+  test 't_attr assign' do
+    #translate assign
+    EnumTA = build_mock_class
+    EnumTA.translate_enum(:test_type)
+
+    et = EnumTA.create
+    et.unit_test!
+    assert( et.unit_test? )
+
+    et.t_test_type = :spec
+    assert( et.spec? )
+
+    et.update_attributes( t_test_type: :controller )
+
+    assert( et.reload.controller? )
   end
 end
 
