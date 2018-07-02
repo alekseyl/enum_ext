@@ -1,8 +1,9 @@
 ru:
   activerecord:
     attributes:
-      enum_ext_test/enum_t:
+      enum_ext_mock:
         test_type: Тип теста
+      enum_ext_test/enum_t:
         test_types:
           unit_test: Юнит тест
           spec: Спеки
