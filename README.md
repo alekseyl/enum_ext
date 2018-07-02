@@ -19,7 +19,8 @@ Or install it yourself as:
     $ gem install enum_ext
 
 ## Usage
- To use enum extension extend main model class with EnumExt module, and make your own extantion to your enums the way you need:
+ To use enum extension extend main model class with EnumExt module, 
+ and customize your enums the way you need:
  
     class SomeModel
       extend EnumExt
@@ -64,10 +65,10 @@ Or install it yourself as:
   end
   ```  
    
-  This call adds to instance:
+  This humanize_enum adds to instance:
    - t_in_cart, t_paid, t_ready_for_shipment
   
-  adds to class:
+  and to class:
    - t_statuses - as given or generated values
    - t_statuses_options - translated enum values options for select input
    - t_statuses_options_i - same as above but use int values with translations works for ActiveAdmin filters for instance
