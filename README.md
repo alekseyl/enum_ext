@@ -104,6 +104,8 @@ Or install it yourself as:
     request.t_status   # >> "paid 3 dollars"
     Request.t_statuses # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
   ```  
+
+  Could be called multiple times, all humanization definitions will be merged under the hood.  
     
 ### Translate (translate_enum) 
 

@@ -1,6 +1,7 @@
 require 'active_record'
 require 'minitest/autorun'
 require 'enum_ext'
+require 'byebug'
 
 class EnumExtMock < ActiveRecord::Base
   extend EnumExt

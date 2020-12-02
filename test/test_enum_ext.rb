@@ -131,9 +131,10 @@ class EnumExtTest < ActiveSupport::TestCase
     end
 
     I18n.locale = :en
-    assert( EnumHB.t_test_types_options == [["unittest", "unit_test"], ["spec tests", "spec"],
-                                            ["viewer tests", "view"], ["controller tests", "controller"],
-                                            ["integration tests", "integration"]] )
+    assert_equal( EnumHB.t_test_types_options,
+                  [["unittest", "unit_test"], ["spec tests", "spec"],
+                   ["viewer tests", "view"], ["controller tests", "controller"],
+                   ["integration tests", "integration"]] )
 
   end
 

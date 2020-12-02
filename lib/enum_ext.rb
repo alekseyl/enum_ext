@@ -181,6 +181,15 @@ module EnumExt
   #   }
   # end
   #
+  # Could be called multiple times, all humanization definitions will be merged under the hood:
+  #  humanize_enum :status, {
+  #     payed: I18n.t("scope.#{status}")
+  # }
+  # humanize_enum :status, {
+  #   billed: I18n.t("scope.#{status}")
+  # }
+  #
+  #
   # Example with block:
   #
   # humanize_enum :status do
@@ -208,23 +217,6 @@ module EnumExt
 
     self.instance_eval do
 
-      #t_enums
-      define_singleton_method( "t_#{enum_plural}" ) do
-        # if localization is abscent than block must be given
-        localizations.try(:with_indifferent_access) || localizations ||
-            send(enum_plural).keys.map {|en| [en, self.new( {enum_name => en} ).send("t_#{enum_name}")] }.to_h.with_indifferent_access
-      end
-
-      #t_enums_options
-      define_singleton_method( "t_#{enum_plural}_options" ) do
-        send("t_#{enum_plural}_options_raw", send("t_#{enum_plural}") )
-      end
-
-      #t_enums_options_i
-      define_singleton_method( "t_#{enum_plural}_options_i" ) do
-        send("t_#{enum_plural}_options_raw_i", send("t_#{enum_plural}") )
-      end
-
       #t_enum
       define_method "t_#{enum_name}" do
         t = block || localizations.try(:with_indifferent_access)[send(enum_name)]
@@ -235,6 +227,28 @@ module EnumExt
         else
           t
         end.to_s
+      end
+
+      @@localizations ||= {}.with_indifferent_access
+      # if localization is abscent than block must be given
+      @@localizations.merge!(
+        localizations.try(:with_indifferent_access) ||
+          localizations ||
+          send(enum_plural).keys.map{|en| [en, Proc.new{ self.new({ enum_name => en }).send("t_#{enum_name}") }] }.to_h.with_indifferent_access
+      )
+      #t_enums
+      define_singleton_method( "t_#{enum_plural}" ) do
+        @@localizations
+      end
+
+      #t_enums_options
+      define_singleton_method( "t_#{enum_plural}_options" ) do
+        send("t_#{enum_plural}_options_raw", send("t_#{enum_plural}") )
+      end
+
+      #t_enums_options_i
+      define_singleton_method( "t_#{enum_plural}_options_i" ) do
+        send("t_#{enum_plural}_options_raw_i", send("t_#{enum_plural}") )
       end
 
       define_method "t_#{enum_name}=" do |new_val|
