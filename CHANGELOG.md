@@ -1,3 +1,8 @@
+# 0.4.2
+* bugfix for localize_enum multiple call
+* test added for 0.4.1 ver funcitonality ( multiple times humanize_enum calls ) 
+* all assert( a == b ) replaced with assert_equal(a,b)
+
 # 0.4.1
 * security dependency issues resolved
 * activerecord version raised 

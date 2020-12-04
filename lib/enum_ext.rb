@@ -219,7 +219,7 @@ module EnumExt
 
       #t_enum
       define_method "t_#{enum_name}" do
-        t = block || localizations.try(:with_indifferent_access)[send(enum_name)]
+        t = block || @@localizations.try(:with_indifferent_access)[send(enum_name)]
         if t.try(:lambda?)
           t.try(:arity) == 1 && t.call( self ) || t.try(:call)
         elsif t.is_a?(Proc)
