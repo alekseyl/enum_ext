@@ -13,6 +13,20 @@ class EnumExtTest < ActiveSupport::TestCase
 
   end
 
+  test 'ext_enum_sets without options' do
+    EnumSetBlank = build_mock_class
+
+    # class:
+    #   - high_level, raw_level ( as corresponding scopes )
+    #   - with_test_types, without_test_types also scopes but with params, allows to combine and negate defined sets and enum values
+    EnumSetBlank.ext_enum_sets :test_type, {}
+
+    EnumSetBlank.instance_eval { ext_enum_sets :test_type }
+
+    assert( EnumSetBlank.without_test_types([:unit_test, :spec]).map(&:test_type).uniq.sort, ["unit_test", "spec"].sort)
+    assert( EnumSetBlank.with_test_types([:unit_test, :spec]).map(&:test_type).uniq.sort, ["integration", "controller", "view"].sort)
+  end
+
   test 'ext_enum_sets' do
     EnumSet = build_mock_class
 

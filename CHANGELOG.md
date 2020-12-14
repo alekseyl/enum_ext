@@ -1,3 +1,6 @@
+# 0.4.3
+* ext_enum_sets now can go without options just to define with and without scopes
+
 # 0.4.2
 * bugfix for localize_enum multiple call
 * test added for 0.4.1 ver funcitonality ( multiple times humanize_enum calls ) 

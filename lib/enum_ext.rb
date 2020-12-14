@@ -69,25 +69,24 @@ module EnumExt
   #  ext_enum_sets :status, {
   #                  outside_wharehouse: ( delivery_set_statuses - in_warehouse_statuses )... any other array operations like &, + and so can be used
   #                }
-  def ext_enum_sets( enum_name, options )
+  def ext_enum_sets( enum_name, options = {} )
     enum_plural = enum_name.to_s.pluralize
 
     self.instance_eval do
+      # with_enums scope
+      scope "with_#{enum_plural}", -> (sets_arr) {
+        where( enum_name => self.send( enum_plural ).slice(
+          *sets_arr.map{|set_name| self.try( "#{set_name}_#{enum_plural}" ) || set_name }.flatten.uniq.map(&:to_s) ).values )
+      } unless respond_to?("with_#{enum_plural}")
+
+      # without_enums scope
+      scope "without_#{enum_plural}", -> (sets_arr) {
+        where.not( id: self.send("with_#{enum_plural}", sets_arr) )
+      } unless respond_to?("without_#{enum_plural}")
+
       options.each do |set_name, enum_vals|
         # set_name scope
         scope set_name, -> { where( enum_name => self.send( enum_plural ).slice( *enum_vals.map(&:to_s) ).values ) }
-
-        # with_enums scope
-        scope "with_#{enum_plural}", -> (sets_arr) {
-          where( enum_name => self.send( enum_plural ).slice(
-                     *sets_arr.map{|set_name| self.try( "#{set_name}_#{enum_plural}" ) || set_name }.flatten.uniq.map(&:to_s) ).values )
-        } unless respond_to?("with_#{enum_plural}")
-
-        # without_enums scope
-        scope "without_#{enum_plural}", -> (sets_arr) {
-          where.not( id: self.send("with_#{enum_plural}", sets_arr) )
-        } unless respond_to?("without_#{enum_plural}")
-
 
         # class.enum_set_values
         define_singleton_method( "#{set_name}_#{enum_plural}" ) do
