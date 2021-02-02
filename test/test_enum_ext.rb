@@ -245,6 +245,19 @@ class EnumExtTest < ActiveSupport::TestCase
 
     assert( et.reload.controller? )
   end
+
+  test 'no AR model is OK with ext_enum_set' do
+    NoARClass = build_mock_class
+
+    class << NoARClass
+      undef_method :scope
+    end
+
+    NoARClass.ext_enum_sets :test_type, raw_level: [:unit_test, :spec]
+
+    no_ar = NoARClass.new( test_type: :unit_test )
+    assert( no_ar.raw_level? )
+  end
 end
 
 

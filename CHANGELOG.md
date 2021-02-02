@@ -1,3 +1,7 @@
+# 0.4.4
+* ext_enum_sets now can be executed without 'scope' definition present on the base class, 
+for instance you can now use with StoreModel's 
+
 # 0.4.3
 * ext_enum_sets now can go without options just to define with and without scopes
 

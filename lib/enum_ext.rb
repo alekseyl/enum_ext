@@ -77,18 +77,18 @@ module EnumExt
       scope "with_#{enum_plural}", -> (sets_arr) {
         where( enum_name => self.send( enum_plural ).slice(
           *sets_arr.map{|set_name| self.try( "#{set_name}_#{enum_plural}" ) || set_name }.flatten.uniq.map(&:to_s) ).values )
-      } unless respond_to?("with_#{enum_plural}")
+      } if !respond_to?("with_#{enum_plural}") && respond_to?(:scope)
 
       # without_enums scope
       scope "without_#{enum_plural}", -> (sets_arr) {
         where.not( id: self.send("with_#{enum_plural}", sets_arr) )
-      } unless respond_to?("without_#{enum_plural}")
+      } if !respond_to?("without_#{enum_plural}") && respond_to?(:scope)
 
       options.each do |set_name, enum_vals|
         # set_name scope
-        scope set_name, -> { where( enum_name => self.send( enum_plural ).slice( *enum_vals.map(&:to_s) ).values ) }
+        scope set_name, -> { where( enum_name => self.send( enum_plural ).slice( *enum_vals.map(&:to_s) ).values ) } if respond_to?(:scope)
 
-        # class.enum_set_values
+          # class.enum_set_values
         define_singleton_method( "#{set_name}_#{enum_plural}" ) do
           enum_vals
         end
