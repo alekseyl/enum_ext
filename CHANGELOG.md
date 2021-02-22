@@ -1,3 +1,6 @@
+# 0.4.5
+* ext_enum_sets will add class method: ext_enum_pluralised, containing all extended enum sets as a single Hash
+
 # 0.4.4
 * ext_enum_sets now can be executed without 'scope' definition present on the base class, 
 for instance you can now use with StoreModel's 

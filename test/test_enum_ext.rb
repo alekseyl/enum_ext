@@ -51,6 +51,13 @@ class EnumExtTest < ActiveSupport::TestCase
                       minitest: ( raw_level_test_types | high_level_test_types )
 
     end
+    assert_equal(
+      {:raw_level=>[:unit_test, :spec],
+       :high_level=>[:view, :controller, :integration],
+       :fast=>[:unit_test, :spec, :controller],
+       :minitest=>[:unit_test, :spec, :view, :controller, :integration]},
+      EnumSet.ext_test_types
+    )
     es = EnumSet.create( test_type: :unit_test )
 
     assert( es.raw_level? )
@@ -68,7 +75,6 @@ class EnumExtTest < ActiveSupport::TestCase
     # superset also works
     assert( es.fast? )
     assert( EnumSet.fast.exists?( es.id ) )
-
   end
 
   test 'humanize' do

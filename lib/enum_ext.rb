@@ -73,6 +73,12 @@ module EnumExt
     enum_plural = enum_name.to_s.pluralize
 
     self.instance_eval do
+      define_singleton_method("ext_#{enum_plural}") do
+        @enum_ext_summary ||= {}
+      end unless respond_to?("ext_#{enum_plural}")
+
+      send("ext_#{enum_plural}").merge!( options )
+
       # with_enums scope
       scope "with_#{enum_plural}", -> (sets_arr) {
         where( enum_name => self.send( enum_plural ).slice(
