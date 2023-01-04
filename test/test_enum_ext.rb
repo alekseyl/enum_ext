@@ -2,6 +2,23 @@ require 'test_helper'
 
 class EnumExtTest < ActiveSupport::TestCase
 
+  test 'enum ext: array' do
+    EnumExtDirect = build_mock_class_without_enum
+    EnumExtDirect.stub_must_all(
+      enum_i: :do_nothing,
+      mass_assign_enum: :do_nothing
+    ) do
+      EnumExtDirect.enum test_type: [:unit_test], ext: [:enum_i, :mass_assign_enum]
+    end
+  end
+
+  test 'enum ext: single' do
+    EnumExtDirect = build_mock_class_without_enum
+    EnumExtDirect.stub_must(:enum_i, :do_nothing) do
+      EnumExtDirect.enum test_type: [:unit_test], ext: :enum_i
+    end
+  end
+
   test 'enum_i' do
     EnumI = build_mock_class
     EnumI.enum_i(:test_type)

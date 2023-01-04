@@ -2,6 +2,7 @@ require 'active_record'
 require 'minitest/autorun'
 require 'enum_ext'
 require 'byebug'
+require 'stubberry'
 
 class EnumExtMock < ActiveRecord::Base
   extend EnumExt
@@ -9,8 +10,15 @@ class EnumExtMock < ActiveRecord::Base
 
   has_many :enum_ext_mocks
   belongs_to :enum_ext_mock
-
 end
+
+class EnumExtMockClear < ActiveRecord::Base
+  extend EnumExt
+
+  has_many :enum_ext_mocks
+  belongs_to :enum_ext_mock
+end
+
 
 ActiveRecord::Base.establish_connection(
     adapter:  'sqlite3',
@@ -30,6 +38,10 @@ class ActiveSupport::TestCase
 
   def build_mock_class
     Class.new(EnumExtMock) { self.table_name = :enum_ext_mocks }
+  end
+
+  def build_mock_class_without_enum
+    Class.new(EnumExtMockClear) { self.table_name = :enum_ext_mocks }
   end
 
 end

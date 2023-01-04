@@ -1,3 +1,9 @@
+# 0.4.6
+* allows enum to enable simple helpers directly at enum definition. Ex: 
+```
+enum test_type: [:value], ext: [:enum_i, :mass_assign_enum]
+```
+
 # 0.4.5
 * ext_enum_sets will add class method: ext_enum_pluralised, containing all extended enum sets as a single Hash
 

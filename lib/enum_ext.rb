@@ -13,6 +13,17 @@ require 'enum_ext/version'
 #
 module EnumExt
 
+  # extending enum with inplace settings
+  # enum status: {}, ext: [:enum_i, :mass_assign_enum]
+  # enum_i and mass_assign_enum ara
+  def enum(definitions)
+    extensions = definitions.delete(:ext)
+    super(definitions)
+    definitions.each do |name,|
+      [*extensions].each{|ext_method| send(ext_method, name) }
+    end
+  end
+
   # defines shortcut for getting integer value of enum.
   # for enum named 'status' will generate:
   # instance.status_i

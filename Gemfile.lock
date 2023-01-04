@@ -65,6 +65,7 @@ GEM
       thor (>= 0.20.3, < 2.0)
     rake (13.0.1)
     sqlite3 (1.4.2)
+    stubberry (0.3.0)
     thor (1.0.1)
     thread_safe (0.3.6)
     tzinfo (1.2.8)
@@ -82,6 +83,7 @@ DEPENDENCIES
   rails-i18n (>= 4)
   rake (>= 10.0)
   sqlite3
+  stubberry
 
 BUNDLED WITH
    2.1.4
