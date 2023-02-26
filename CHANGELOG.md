@@ -1,3 +1,27 @@
+# 0.5.0
+* with/without definitions will go standalone now, you need explicitly address them. Ex:
+```
+  multi_enum_scopes :test_type
+# OR
+  enum test_type: [..], ext: [:multi_enum_scopes]
+```
+* easier supersets definitions, no raw level class methods and multiple method call needed anymore for additive supersets:
+
+```ruby
+  ext_enum_sets :test_type, raw_level: [:unit_test, :spec]
+  ext_enum_sets :test_type,
+                fast: raw_level_test_types | [:controller]
+# Now it could be defined like this: 
+  ext_enum_sets :test_type, 
+                raw_level: [:unit_test, :spec],
+                fast: [:raw_level, :controller]
+```
+ Rem you still need couple `ext_enum_sets` calls if you want to use (`-` / `&` / `^`) array operators except for (`+` / `|`) 
+
+* Definitions now stored as IndifferentHash just as enum originally does 
+  and as an Array of strings not a symbols even if defined as ones
+* Some deprecations warning added
+
 # 0.4.6
 * allows enum to enable simple helpers directly at enum definition. Ex: 
 ```

@@ -34,15 +34,37 @@ class EnumExtTest < ActiveSupport::TestCase
     EnumSetBlank = build_mock_class
 
     # class:
-    #   - high_level, raw_level ( as corresponding scopes )
-    #   - with_test_types, without_test_types also scopes but with params, allows to combine and negate defined sets and enum values
-    EnumSetBlank.ext_enum_sets :test_type, {}
+    #   - with_test_types, without_test_types also scopes but with params,
+    #     allows to combine and negate defined sets and enum values
+    EnumSetBlank.multi_enum_scopes :test_type
 
-    EnumSetBlank.instance_eval { ext_enum_sets :test_type }
-
-    assert( EnumSetBlank.without_test_types([:unit_test, :spec]).map(&:test_type).uniq.sort, ["unit_test", "spec"].sort)
-    assert( EnumSetBlank.with_test_types([:unit_test, :spec]).map(&:test_type).uniq.sort, ["integration", "controller", "view"].sort)
+    assert( EnumSetBlank.without_test_types(:unit_test, :spec).map(&:test_type).uniq.sort, ["unit_test", "spec"].sort)
+    assert( EnumSetBlank.with_test_types(:unit_test, :spec).map(&:test_type).uniq.sort, ["integration", "controller", "view"].sort)
   end
+
+  test 'ext_enum_sets instance methods working as expected' do
+    EnumSetNestedDef = build_mock_class
+
+    EnumSetNestedDef.ext_enum_sets :test_type,
+                               raw_level: [:unit_test, :spec],
+                               high_level: [:view, :controller, :integration],
+                               fast: [:raw_level, :controller],
+                               minitest: [:raw_level, :high_level]
+
+    es = EnumSetNestedDef.create( test_type: :unit_test )
+
+    # instance methods are defined and working as expected
+    assert( es.raw_level? )
+    assert( !es.high_level? )
+
+    # superset also works
+    assert( es.fast? )
+
+    # scopes works well also
+    assert( EnumSetNestedDef.raw_level.exists?( es.id ) )
+    assert( EnumSetNestedDef.fast.exists?( es.id ) )
+  end
+
 
   test 'ext_enum_sets' do
     EnumSet = build_mock_class
@@ -68,11 +90,12 @@ class EnumExtTest < ActiveSupport::TestCase
                       minitest: ( raw_level_test_types | high_level_test_types )
 
     end
+
     assert_equal(
-      {:raw_level=>[:unit_test, :spec],
-       :high_level=>[:view, :controller, :integration],
-       :fast=>[:unit_test, :spec, :controller],
-       :minitest=>[:unit_test, :spec, :view, :controller, :integration]},
+      {:raw_level  => %w[unit_test spec],
+       :high_level => %w[view controller integration],
+       :fast       => %w[unit_test spec controller],
+       :minitest   => %w[unit_test spec view controller integration]}.with_indifferent_access,
       EnumSet.ext_test_types
     )
     es = EnumSet.create( test_type: :unit_test )
@@ -81,8 +104,7 @@ class EnumExtTest < ActiveSupport::TestCase
     assert( !es.high_level? )
     assert( EnumSet.raw_level.exists?( es.id ) )
 
-    assert_equal( EnumSet.test_types.slice(:unit_test, :spec).values, EnumSet.raw_level_test_types_i )
-    assert_equal([:unit_test, :spec],  EnumSet.raw_level_test_types )
+    assert_equal(%w[unit_test spec], EnumSet.raw_level_test_types )
 
     # since translation wasn't defined
     assert_equal([["Enum translations call missed. Did you forget to call translate test_type"]*2].to_h, EnumSet.t_raw_level_test_types )

@@ -1,4 +1,5 @@
-require 'enum_ext/version'
+require "enum_ext/version"
+require "enum_ext/humanize"
 
 # Let's assume we have model Request with enum status, and we have model Order with requests like this:
 # class Request
@@ -10,22 +11,78 @@ require 'enum_ext/version'
 # class Order
 #   has_many :requests
 # end
-#
+
+puts <<~DEPRECATION
+  ---------------------DEPRECATION WARNING---------------------------
+  There are TWO MAJOR breaking changes coming into the next version :
+  First deprecation: all major DSL moving major class methods to 
+  enum, just for the sake of clarity:  
+
+  Ex for enum named kinds it could look like this: 
+
+    Class.ext_sets_to_kinds         --> Class.kinds.set_to_basic
+    Class.ext_kinds                 --> Class.kinds.sets
+    Class.all_kinds_defs            --> Class.kinds.all
+    Class.t_kinds_options           --> Class.kinds.t_options
+    Class.t_named_set_kinds_options --> Class.kinds.t_named_set_options
+  
+  Enum extensions preferable way will be using param to original enum call:
+  Ex:
+    #Instead of three method calls:    
+    enum kind: {}
+    enum_i :kind
+    enum_mass_assign :kind
+
+    #You should go with ext  option instead:
+    enum kinds: {}, ext: [:enum_i, :enum_mass_assign]
+DEPRECATION
+
 module EnumExt
 
-  # extending enum with inplace settings
-  # enum status: {}, ext: [:enum_i, :mass_assign_enum]
-  # enum_i and mass_assign_enum ara
-  def enum(definitions)
-    extensions = definitions.delete(:ext)
-    super(definitions)
-    definitions.each do |name,|
-      [*extensions].each{|ext_method| send(ext_method, name) }
+  class << self
+    def define_set_to_enum_method( extended_class, enum_plural)
+      #  ext_sets_to_kinds( :ready_for_shipment, :delivery_set ) --> [:ready_for_shipment, :on_delivery, :delivered]
+      extended_class.define_singleton_method("ext_sets_to_#{enum_plural}") do |*enum_or_sets|
+        return [] if enum_or_sets.blank?
+        enum_or_sets_strs = enum_or_sets.map(&:to_s)
+
+        next_level_deeper = try("ext_#{enum_plural}").slice( *enum_or_sets_strs ).values.flatten
+        (enum_or_sets_strs & send(enum_plural).keys | send("ext_sets_to_#{enum_plural}", *next_level_deeper)).uniq
+      end
+    end
+
+    def define_summary_methods(extended_class, enum_plural)
+      extended_class.define_singleton_method("ext_#{enum_plural}") do
+        @enum_ext_summary ||= ActiveSupport::HashWithIndifferentAccess.new
+      end unless respond_to?("ext_#{enum_plural}")
+
+      extended_class.define_singleton_method("all_#{enum_plural}") do
+        {
+          **send(enum_plural),
+          "ext_#{enum_plural}": {
+            **send("ext_#{enum_plural}")
+          }
+        } unless respond_to?("all_#{enum_plural}")
+      end
     end
   end
 
-  # defines shortcut for getting integer value of enum.
+  # extending enum with inplace settings
+  # enum status: {}, ext: [:enum_i, :mass_assign_enum, :enum_multi_scopes]
+  # enum_i and mass_assign_enum ara
+  def enum(definitions)
+    extensions = definitions.delete(:ext)
+
+    super(definitions).tap do
+      definitions.each do |name,|
+        [*extensions].each{|ext_method| send(ext_method, name) }
+      end
+    end
+  end
+
+  # Defines instance method a shortcut for getting integer value of an enum.
   # for enum named 'status' will generate:
+  #
   # instance.status_i
   def enum_i( enum_name )
     define_method "#{enum_name}_i" do
@@ -33,9 +90,35 @@ module EnumExt
     end
   end
 
+  # Defines two scopes for one for an inclusion: `WHERE enum IN( enum1, enum2 )`,
+  # and the second for an exclusion: `WHERE enum NOT IN( enum1, enum2 )`
+  #
+  # Ex:
+  #  Request.with_statuses( :payed, :delivery_set )    # >> :payed and [:ready_for_shipment, :on_delivery, :delivered] requests
+  #  Request.without_statuses( :payed )                # >> scope for all requests with statuses not eq to :payed
+  #  Request.without_statuses( :payed, :in_warehouse ) # >> scope all requests with statuses not eq to :payed or :ready_for_shipment
+  def multi_enum_scopes(enum_name)
+    enum_plural = enum_name.to_s.pluralize
+
+    self.instance_eval do
+      # with_enums scope
+      scope "with_#{enum_plural}", -> (*enum_list) {
+        where( enum_name => send("ext_sets_to_#{enum_plural}", enum_list) )
+      } if !respond_to?("with_#{enum_plural}") && respond_to?(:scope)
+
+      # without_enums scope
+      scope "without_#{enum_plural}", -> (*enum_list) {
+        where.not( enum_name => send("ext_sets_to_#{enum_plural}", enum_list) )
+      } if !respond_to?("without_#{enum_plural}") && respond_to?(:scope)
+
+      EnumExt.define_set_to_enum_method(self, enum_plural)
+      EnumExt.define_summary_methods(self, enum_plural)
+    end
+  end
 
   # ext_enum_sets
   # This method intend for creating and using some sets of enum values
+  #
   # it creates: scopes for subsets,
   #             instance method with ?,
   #             and some class methods helpers
@@ -69,53 +152,44 @@ module EnumExt
   #  Request.in_warehouse.exists?(request)    # >> false
   #
   #  Request.delivery_set_statuses            # >> [:ready_for_shipment, :on_delivery, :delivered]
-  #
-  #  Request.with_statuses( :payed, :delivery_set )    # >> :payed and [:ready_for_shipment, :on_delivery, :delivered] requests
-  #  Request.without_statuses( :payed )                # >> scope for all requests with statuses not eq to :payed
-  #  Request.without_statuses( :payed, :in_warehouse ) # >> scope all requests with statuses not eq to :payed or :ready_for_shipment
-  #
 
   #Rem:
   #  ext_enum_sets can be called twice defining a superposition of already defined sets ( considering previous example ):
   #  ext_enum_sets :status, {
-  #                  outside_wharehouse: ( delivery_set_statuses - in_warehouse_statuses )... any other array operations like &, + and so can be used
+  #                  outside_warehouse: ( delivery_set_statuses - in_warehouse_statuses )... any other array operations like &, + and so can be used
   #                }
   def ext_enum_sets( enum_name, options = {} )
     enum_plural = enum_name.to_s.pluralize
 
     self.instance_eval do
-      define_singleton_method("ext_#{enum_plural}") do
-        @enum_ext_summary ||= {}
-      end unless respond_to?("ext_#{enum_plural}")
+      EnumExt.define_set_to_enum_method(self, enum_plural)
+      EnumExt.define_summary_methods(self, enum_plural)
 
-      send("ext_#{enum_plural}").merge!( options )
+      puts(<<~DEPRECATION) unless respond_to?("with_#{enum_plural}")
+        ----------------DEPRECATION WARNING----------------
+        - with/without_#{enum_plural} are served now via multi_enum_scopes method, 
+          and will be removed from the ext_enum_sets in the next version!
+      DEPRECATION
+      multi_enum_scopes(enum_name)
 
-      # with_enums scope
-      scope "with_#{enum_plural}", -> (sets_arr) {
-        where( enum_name => self.send( enum_plural ).slice(
-          *sets_arr.map{|set_name| self.try( "#{set_name}_#{enum_plural}" ) || set_name }.flatten.uniq.map(&:to_s) ).values )
-      } if !respond_to?("with_#{enum_plural}") && respond_to?(:scope)
-
-      # without_enums scope
-      scope "without_#{enum_plural}", -> (sets_arr) {
-        where.not( id: self.send("with_#{enum_plural}", sets_arr) )
-      } if !respond_to?("without_#{enum_plural}") && respond_to?(:scope)
+      send("ext_#{enum_plural}").merge!( options.transform_values{ _1.map(&:to_s) } )
 
       options.each do |set_name, enum_vals|
         # set_name scope
-        scope set_name, -> { where( enum_name => self.send( enum_plural ).slice( *enum_vals.map(&:to_s) ).values ) } if respond_to?(:scope)
+        scope set_name, -> { where( enum_name => send("#{set_name}_#{enum_plural}") ) } if respond_to?(:scope)
 
-          # class.enum_set_values
+        # class.enum_set_values
         define_singleton_method( "#{set_name}_#{enum_plural}" ) do
-          enum_vals
+          send("ext_sets_to_#{enum_plural}", *enum_vals)
         end
 
-        # class.enum_set_enums_i
-        define_singleton_method( "#{set_name}_#{enum_plural}_i" ) do
-          self.send( "#{enum_plural}" ).slice( *self.send("#{set_name}_#{enum_plural}") ).values
+        # instance.set_name?
+        define_method "#{set_name}?" do
+          send(enum_name) && self.class.send( "#{set_name}_#{enum_plural}" ).include?( send(enum_name) )
         end
 
         # t_... - are translation dependent methods
+        # This one is a narrow case helpers just a quick subset of t_ enums options for a set
         # class.t_enums_options
         define_singleton_method( "t_#{set_name}_#{enum_plural}_options" ) do
           return [["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2] unless respond_to?( "t_#{enum_plural}_options_raw" )
@@ -130,28 +204,25 @@ module EnumExt
           send("t_#{enum_plural}_options_raw_i", send("t_#{set_name}_#{enum_plural}") )
         end
 
-        # instance.set_name?
-        define_method "#{set_name}?" do
-          self.send(enum_name) && ( enum_vals.include?( self.send(enum_name) ) || enum_vals.include?( self.send(enum_name).to_sym ))
-        end
-
         # protected?
-        # class.t_setname_enums ( translations or humanizations subset for a given set )
+        # class.t_set_name_enums ( translations or humanizations subset for a given set )
         define_singleton_method( "t_#{set_name}_#{enum_plural}" ) do
           return [(["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2)].to_h unless respond_to?( "t_#{enum_plural}" )
 
-          send( "t_#{enum_plural}" ).slice( *self.send("#{set_name}_#{enum_plural}") )
+          send( "t_#{enum_plural}" ).slice( *send("#{set_name}_#{enum_plural}") )
         end
       end
     end
   end
 
   # Ex mass_assign_enum
+  #
   # Used for mass assigning for collection without callbacks it creates bang methods for collections using update_all.
   # it's often case when you need bulk update without callbacks, so it's gets frustrating to repeat:
   # some_scope.update_all(status: Request.statuses[:new_status], update_at: Time.now)
-  # If you need callbacks you can do like this: some_scope.each(&:new_stat!) but if you don't need callbacks and you have lots of records
-  # to change at once you need update_all
+  #
+  # If you need callbacks you can do like this: some_scope.each(&:new_stat!) but if you don't need callbacks
+  # and you have lots of records to change at once you need update_all
   #
   #  mass_assign_enum( :status )
   #
@@ -162,14 +233,13 @@ module EnumExt
   # request1.in_cart!
   # request2.waiting_for_payment!
   # Request.with_statuses( :in_cart, :waiting_for_payment ).payed!
-  # request1.paid?                         # >> true
-  # request2.paid?                         # >> true
+  # request1.paid?                          # >> true
+  # request2.paid?                          # >> true
   # request1.updated_at                     # >> Time.now
-  # defined?(Request::MassAssignEnum)      # >> true
   #
-  # order.requests.paid.all?(&:paid?) # >> true
+  # order.requests.paid.all?(&:paid?)       # >> true
   # order.requests.paid.delivered!
-  # order.requests.map(&:status).uniq                   #>> [:delivered]
+  # order.requests.map(&:status).uniq       #>> [:delivered]
 
   def mass_assign_enum( *enums_names )
     enums_names.each do |enum_name|
@@ -182,10 +252,12 @@ module EnumExt
       end
     end
   end
+  alias_method :enum_mass_assign, :mass_assign_enum
 
   # if app doesn't need internationalization, it may use humanize_enum to make enum user friendly
+  #
   # class Request
-  # humanize_enum :status, {
+  #   humanize_enum :status, {
   #     #locale dependent example with pluralization and lambda:
   #     payed: -> (t_self) { I18n.t("request.status.payed", count: t_self.sum ) }
   #
