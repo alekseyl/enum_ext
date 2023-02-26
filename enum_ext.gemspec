@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["alekseyl"]
   spec.email         = ["leshchuk@gmail.com"]
 
-  spec.summary       = %q{Enum extension, ads enum sets, mass-assign, localization, and some sugar helpers.}
-  spec.description   = %q{Enum extension, ads enum sets, mass-assign, localization, and some sugar helpers.}
+  spec.summary       = %q{Enum extension introduces: enum supersets, enum mass-assign, easy localization, and more sweetness to Active Record enums.}
+  spec.description   = %q{Enum extension introduces: enum supersets, enum mass-assign, easy localization, and more sweetness to Active Record enums.}
   spec.homepage      = "https://github.com/alekseyl/enum_ext"
   spec.license       = "MIT"
 

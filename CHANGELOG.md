@@ -1,3 +1,6 @@
+# 0.5.1
+* gem description update
+
 # 0.5.0
 * with/without definitions will go standalone now, you need explicitly address them. Ex:
 ```
