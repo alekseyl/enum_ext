@@ -1,3 +1,6 @@
+# 0.5.2
+* removed unused require from the upcoming version 
+
 # 0.5.1
 * gem description update
 

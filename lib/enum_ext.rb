@@ -1,5 +1,4 @@
 require "enum_ext/version"
-require "enum_ext/humanize"
 
 # Let's assume we have model Request with enum status, and we have model Order with requests like this:
 # class Request
