@@ -13,8 +13,8 @@ require "enum_ext/version"
 
 puts <<~DEPRECATION
   ---------------------DEPRECATION WARNING---------------------------
-  There are TWO MAJOR breaking changes coming into the next version :
-  First deprecation: all major DSL moving major class methods to 
+  There are TWO MAJOR breaking changes coming into the next major version :
+  First deprecation: all major DSL moving class methods to 
   enum, just for the sake of clarity:  
 
   Ex for enum named kinds it could look like this: 
@@ -25,7 +25,7 @@ puts <<~DEPRECATION
     Class.t_kinds_options           --> Class.kinds.t_options
     Class.t_named_set_kinds_options --> Class.kinds.t_named_set_options
   
-  Enum extensions preferable way will be using param to original enum call:
+  Enum extensions preferable way will be using param to original enum call or single exetension method:
   Ex:
     #Instead of three method calls:    
     enum kind: {}
@@ -34,6 +34,10 @@ puts <<~DEPRECATION
 
     #You should go with ext  option instead:
     enum kinds: {}, ext: [:enum_i, :enum_mass_assign]
+
+    # OR in case of standalone enum definition:
+    enum kinds: {}
+    enum_ext [:enum_i, :enum_mass_assign, supersets: {} ]
 DEPRECATION
 
 module EnumExt
@@ -102,12 +106,12 @@ module EnumExt
     self.instance_eval do
       # with_enums scope
       scope "with_#{enum_plural}", -> (*enum_list) {
-        where( enum_name => send("ext_sets_to_#{enum_plural}", enum_list) )
+        enum_list.blank? ? nil : where( enum_name => send("ext_sets_to_#{enum_plural}", *enum_list) )
       } if !respond_to?("with_#{enum_plural}") && respond_to?(:scope)
 
       # without_enums scope
       scope "without_#{enum_plural}", -> (*enum_list) {
-        where.not( enum_name => send("ext_sets_to_#{enum_plural}", enum_list) )
+        enum_list.blank? ? nil : where.not( enum_name => send("ext_sets_to_#{enum_plural}", *enum_list) )
       } if !respond_to?("without_#{enum_plural}") && respond_to?(:scope)
 
       EnumExt.define_set_to_enum_method(self, enum_plural)

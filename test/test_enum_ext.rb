@@ -2,6 +2,10 @@ require 'test_helper'
 
 class EnumExtTest < ActiveSupport::TestCase
 
+  def create_all_kids(klass)
+    klass.test_types.keys.each { |tk| klass.create( test_type: tk ) }
+  end
+
   test 'enum ext: array' do
     EnumExtDirect = build_mock_class_without_enum
     EnumExtDirect.stub_must_all(
@@ -24,22 +28,34 @@ class EnumExtTest < ActiveSupport::TestCase
     EnumI.enum_i(:test_type)
 
     EnumI.test_types.each_value do |tt|
-      ei = EnumI.create(test_type: tt)
+      ei = EnumI.new(test_type: tt)
       assert_equal( EnumExtMock.test_types[ei.test_type], ei.test_type_i  )
     end
 
   end
 
   test 'ext_enum_sets without options' do
-    EnumSetBlank = build_mock_class
+    EnumMultiScope = build_mock_class
 
+    create_all_kids(EnumMultiScope)
     # class:
     #   - with_test_types, without_test_types also scopes but with params,
     #     allows to combine and negate defined sets and enum values
-    EnumSetBlank.multi_enum_scopes :test_type
+    EnumMultiScope.multi_enum_scopes :test_type
 
-    assert( EnumSetBlank.without_test_types(:unit_test, :spec).map(&:test_type).uniq.sort, ["unit_test", "spec"].sort)
-    assert( EnumSetBlank.with_test_types(:unit_test, :spec).map(&:test_type).uniq.sort, ["integration", "controller", "view"].sort)
+
+    assert_equal( EnumMultiScope.without_test_types(:unit_test, :spec).map(&:test_type).uniq.sort,
+                  ["integration", "controller", "view"].uniq.sort)
+
+    assert_equal( EnumMultiScope.with_test_types(:unit_test, :spec).map(&:test_type).uniq.sort,
+                  ["unit_test", "spec"].uniq.sort)
+
+    byebug
+    assert_equal( EnumMultiScope.all.with_test_types.map(&:test_type).tally,
+                  EnumMultiScope.all.map(&:test_type).tally)
+
+    assert_equal( EnumMultiScope.all.without_test_types.map(&:test_type).tally,
+                  EnumMultiScope.all.map(&:test_type).tally)
   end
 
   test 'ext_enum_sets instance methods working as expected' do
@@ -286,7 +302,7 @@ class EnumExtTest < ActiveSupport::TestCase
     et.t_test_type = :spec
     assert( et.spec? )
 
-    et.update_attributes( t_test_type: :controller )
+    et.update( t_test_type: :controller )
 
     assert( et.reload.controller? )
   end

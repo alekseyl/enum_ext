@@ -28,4 +28,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'sqlite3'
   spec.add_development_dependency 'byebug'
   spec.add_development_dependency 'stubberry'
+  spec.add_development_dependency 'rails_sql_prettifier'
+  spec.add_development_dependency 'amazing_print'
 end

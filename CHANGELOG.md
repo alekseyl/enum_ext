@@ -1,3 +1,8 @@
+# 0.5.3
+* refactored tests
+* multi_enum_scopes will be chainable with empty params (i.e. will not change the scope)
+* some development dependencies were added
+
 # 0.5.2
 * removed unused require from the upcoming version 
 
