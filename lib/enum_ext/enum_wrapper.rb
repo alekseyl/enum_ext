@@ -1,11 +1,16 @@
+# This is an wrapper class for a basic enum.
+# Since enum values will be freezed right after the definition, we can't enrich enum directly functionality
+# We can only wrap it with our own object and delegate enum base base functionality internally
 class EnumExt::EnumWrapper
-  attr_reader :enum_values, :supersets, :t_options_raw
+  attr_reader :enum_values, :supersets, :t_options_raw, :localizations
   delegate_missing_to :enum_values
 
   def initialize(enum_values)
     @enum_values = enum_values
     @supersets = ActiveSupport::HashWithIndifferentAccess.new
+
     @t_options_raw = ActiveSupport::HashWithIndifferentAccess.new
+    @localizations = ActiveSupport::HashWithIndifferentAccess.new
   end
 
   #  ext_sets_to_kinds( :ready_for_shipment, :delivery_set ) -->
@@ -27,29 +32,38 @@ class EnumExt::EnumWrapper
     }
   end
 
+  def t_options_i
+    evaluate_localizations_to_i(localizations)
+  end
+
+  def t_options
+    evaluate_localizations(localizations)
+  end
+
+  alias_method :t, :localizations
+
+  private
+
+  def evaluate_localizations(t_enum_set)
+    # { kind => kind_translation, kind2 => kind2_translation } --> [[kind_translation, kind], [kind2_translation, kind2]]
+    t_enum_set.invert.to_a.map do | translator, name |
+      # since all procs in t_enum are evaluated in context of a record than it's not always possible to create select options automatically
+      translation = if translator.respond_to?(:call)
+        if translator.arity < 1
+          translator.call rescue "Cannot create option for #{name} ( proc fails to evaluate )"
+        else
+          "Cannot create option for #{name} because of a lambda"
+        end
+      end || translator
+      [translation, name]
+    end
+  end
+
+  def evaluate_localizations_to_i(t_enum_set)
+    # { kind => kind_translation, kind2 => kind2_translation } --> [[kind_translation, kind_i], [kind2_translation, kind2_i]]
+    evaluate_localizations(t_enum_set).map do | translation, name |
+      [ translation, self[name] ]
+    end
+  end
+
 end
-
-
-# t_... - are translation dependent methods
-# This one is a narrow case helpers just a quick subset of t_ enums options for a set
-# # class.t_enums_options
-# define_singleton_method( "t_#{superset_name}_#{enum_plural}_options" ) do
-#   return [["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2] unless respond_to?( "t_#{enum_plural}_options_raw" )
-#
-#   send("t_#{enum_plural}_options_raw", send("t_#{superset_name}_#{enum_plural}") )
-# end
-#
-# # class.t_enums_options_i
-# define_singleton_method( "t_#{superset_name}_#{enum_plural}_options_i" ) do
-#   return [["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2] unless respond_to?( "t_#{enum_plural}_options_raw_i" )
-#
-#   send("t_#{enum_plural}_options_raw_i", send("t_#{superset_name}_#{enum_plural}") )
-# end
-#
-# # protected?
-# # class.t_set_name_enums ( translations or humanizations subset for a given set )
-# define_singleton_method( "t_#{superset_name}_#{enum_plural}" ) do
-#   return [(["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2)].to_h unless respond_to?( "t_#{enum_plural}" )
-#
-#   send( "t_#{enum_plural}" ).slice( *send("#{superset_name}_#{enum_plural}") )
-# end

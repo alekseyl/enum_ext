@@ -45,14 +45,14 @@ module EnumExt::HumanizeHelpers
   #   Request.t_statuses # >> { in_cart: -> { I18n.t("request.status.in_cart") }, ....  }
   def humanize_enum( *args, &block )
     enum_name = args.shift
-    localizations = args.pop
+    localization_definitions = args.pop
     enum_plural = enum_name.to_s.pluralize
+    enum_object = send( enum_plural )
 
     self.instance_eval do
-
-      #t_enum
+      # instance.t_enum
       define_method "t_#{enum_name}" do
-        t = block || @@localizations.try(:with_indifferent_access)[send(enum_name)]
+        t = block || enum_object.localizations[send(enum_name)]
         if t.try(:lambda?)
           t.try(:arity) == 1 && t.call( self ) || t.try(:call)
         elsif t.is_a?(Proc)
@@ -62,53 +62,20 @@ module EnumExt::HumanizeHelpers
         end.to_s
       end
 
-      @@localizations ||= {}.with_indifferent_access
-      # if localization is abscent than block must be given
-      @@localizations.merge!(
-        localizations.try(:with_indifferent_access) ||
-          localizations ||
-          send(enum_plural).keys.map{|en| [en, Proc.new{ self.new({ enum_name => en }).send("t_#{enum_name}") }] }.to_h.with_indifferent_access
+      # if localization is absent than block must be given
+      enum_object.localizations.merge!(
+        localization_definitions.try(:with_indifferent_access) ||
+          send(enum_plural).map do |k, _v|
+            # little bit hackerish: instantiate object just with enum setup and then call its t_.. method which
+            [k, Proc.new{ self.new({ enum_name => k }).send("t_#{enum_name}") }]
+          end.to_h.with_indifferent_access
       )
-      #t_enums
-      define_singleton_method( "t_#{enum_plural}" ) do
-        @@localizations
-      end
 
-      #t_enums_options
-      define_singleton_method( "t_#{enum_plural}_options" ) do
-        send("t_#{enum_plural}_options_raw", send("t_#{enum_plural}") )
-      end
-
-      #t_enums_options_i
-      define_singleton_method( "t_#{enum_plural}_options_i" ) do
-        send("t_#{enum_plural}_options_raw_i", send("t_#{enum_plural}") )
-      end
-
+      # hm.. lost myself here, why did I implement this method
       define_method "t_#{enum_name}=" do |new_val|
         send("#{enum_name}=", new_val)
       end
 
-      #protected?
-      define_singleton_method( "t_#{enum_plural}_options_raw_i" ) do |t_enum_set|
-        send("t_#{enum_plural}_options_raw", t_enum_set ).map do | key_val |
-          key_val[1] = send(enum_plural)[key_val[1]]
-          key_val
-        end
-      end
-
-      define_singleton_method( "t_#{enum_plural}_options_raw" ) do |t_enum_set|
-        t_enum_set.invert.to_a.map do | key_val |
-          # since all procs in t_enum are evaluated in context of a record than it's not always possible to create select options
-          if key_val[0].respond_to?(:call)
-            if key_val[0].try(:arity) < 1
-              key_val[0] = key_val[0].try(:call) rescue "Cannot create option for #{key_val[1]} ( proc fails to evaluate )"
-            else
-              key_val[0] = "Cannot create option for #{key_val[1]} because of a lambda"
-            end
-          end
-          key_val
-        end
-      end
     end
   end
   alias localize_enum humanize_enum
@@ -137,30 +104,34 @@ module EnumExt::HumanizeHelpers
   end
 
 
+  # t_... methods for supersets will just slice
+  # original enum t_.. methods output and return only superset related values from it
+  #
   def self.define_superset_humanization_helpers(base_class, superset_name, enum_name)
     enum_plural = enum_name.to_s.pluralize
-    # t_... - are translation dependent methods
-    # This one is a narrow case helpers just a quick subset of t_ enums options for a set
-    # class.t_enums_options
-    base_class.define_singleton_method( "t_#{superset_name}_#{enum_plural}_options" ) do
-      return [["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2] unless respond_to?( "t_#{enum_plural}_options_raw" )
+    enum_object = base_class.send(enum_plural)
 
-      send("t_#{enum_plural}_options_raw", send("t_#{superset_name}_#{enum_plural}") )
+    enum_object.define_singleton_method( "t_#{superset_name}_options" ) do
+      result = evaluate_localizations(send("t_#{superset_name}"))
+      return result unless result.blank?
+
+      [["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2]
     end
 
-    # class.t_enums_options_i
-    base_class.define_singleton_method( "t_#{superset_name}_#{enum_plural}_options_i" ) do
-      return [["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2] unless respond_to?( "t_#{enum_plural}_options_raw_i" )
+    # enums.t_options_i
+    enum_object.define_singleton_method( "t_#{superset_name}_options_i" ) do
+      result = evaluate_localizations_to_i( send("t_#{superset_name}") )
+      return result unless result.to_h.values.all?(&:blank?)
 
-      send("t_#{enum_plural}_options_raw_i", send("t_#{superset_name}_#{enum_plural}") )
+      [["Enum translations are missing. Did you forget to translate #{enum_name}"]*2]
     end
 
-    # protected?
-    # class.t_set_name_enums ( translations or humanizations subset for a given set )
-    base_class.define_singleton_method( "t_#{superset_name}_#{enum_plural}" ) do
-      return [(["Enum translations call missed. Did you forget to call translate #{enum_name}"]*2)].to_h unless respond_to?( "t_#{enum_plural}" )
 
-      send( "t_#{enum_plural}" ).slice( *send("#{superset_name}_#{enum_plural}") )
+    # enums.t_superset ( translations or humanizations subset for a given set )
+    enum_object.define_singleton_method( "t_#{superset_name}" ) do
+      return [(["Enum translations are missing. Did you forget to translate #{enum_name}"]*2)].to_h if localizations.blank?
+
+      enum_object.localizations.slice( *base_class.send("#{superset_name}_#{enum_plural}") )
     end
   end
 end

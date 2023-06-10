@@ -27,23 +27,10 @@ puts <<~DEPRECATION
     Class.ext_kinds                 --> Class.kinds.supersets
     Class.all_kinds_defs            --> Class.kinds.all
    
-    #--------------- NOT DONE -------------------------------------
+    Class.t_kinds                   --> Class.kinds.t
     Class.t_kinds_options           --> Class.kinds.t_options
     Class.t_named_set_kinds_options --> Class.kinds.t_named_set_options
-  
-  Enum extensions preferable way will be using param to original enum call or single extension method:
-  Ex:
-    #Instead of three method calls:    
-    enum kind: {}
-    enum_i :kind
-    enum_mass_assign :kind
 
-    #You should go with ext  option instead:
-    enum kinds: {}, ext: [:enum_i, :enum_mass_assign]
-
-    # OR in case of standalone enum definition:
-    enum kinds: {}
-    enum_ext [:enum_i, :enum_mass_assign, supersets: {} ]
 DEPRECATION
 
 module EnumExt

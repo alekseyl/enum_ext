@@ -1,27 +1,25 @@
 class EnumExtMock < ActiveRecord::Base
   extend EnumExt
-  enum test_type: { unit_test: 0, spec: 1, view: 2, controller: 3, integration: 4}
-
-  has_many :enum_ext_mocks
-  belongs_to :enum_ext_mock
 end
 
-class EnumExtMockClear < ActiveRecord::Base
-  extend EnumExt
+class MassAssignTestClass < EnumExtMock
+  has_many :enum_ext_mocks, class_name: :MassAssignTestClass, foreign_key: :enum_ext_mock_id
+  belongs_to :enum_ext_mock, class_name: :MassAssignTestClass, foreign_key: :enum_ext_mock_id
 
-  has_many :enum_ext_mocks
-  belongs_to :enum_ext_mock
+  self.table_name = :enum_ext_mocks
+  self.enum test_type: { unit_test: 0, spec: 1, view: 2, controller: 3, integration: 4}
 end
-
 
 module MockClassHelpers
 
   def build_mock_class
-    Class.new(EnumExtMock) { self.table_name = :enum_ext_mocks }
+    Class.new(EnumExtMock) do
+      self.enum test_type: { unit_test: 0, spec: 1, view: 2, controller: 3, integration: 4}
+    end
   end
 
   def build_mock_class_without_enum
-    Class.new(EnumExtMockClear) { self.table_name = :enum_ext_mocks }
+    Class.new(EnumExtMock) { self.table_name = :enum_ext_mocks }
   end
 
 end
