@@ -39,7 +39,7 @@ class EnumExtTest < ActiveSupport::TestCase
 
     EnumI.test_types.each_value do |tt|
       ei = EnumI.new(test_type: tt)
-      assert_equal( EnumExtMock.test_types[ei.test_type], ei.test_type_i  )
+      assert_equal( EnumI.test_types[ei.test_type], ei.test_type_i  )
     end
   end
 
@@ -128,9 +128,9 @@ class EnumExtTest < ActiveSupport::TestCase
     assert_equal(%w[unit_test spec], EnumSet.raw_level_test_types )
 
     # since translation wasn't defined
-    assert_equal([["Enum translations call missed. Did you forget to call translate test_type"]*2].to_h, EnumSet.t_raw_level_test_types )
-    assert_equal( [["Enum translations call missed. Did you forget to call translate test_type"]*2], EnumSet.t_raw_level_test_types_options )
-    assert_equal( [["Enum translations call missed. Did you forget to call translate test_type"]*2], EnumSet.t_raw_level_test_types_options_i )
+    assert_equal([["Enum translations are missing. Did you forget to translate test_type"]*2].to_h, EnumSet.test_types.t_raw_level )
+    assert_equal( [["Enum translations are missing. Did you forget to translate test_type"]*2], EnumSet.test_types.t_raw_level_options )
+    assert_equal( [["Enum translations are missing. Did you forget to translate test_type"]*2], EnumSet.test_types.t_raw_level_options_i )
 
     # superset also works
     assert( es.fast? )
@@ -171,19 +171,18 @@ class EnumExtTest < ActiveSupport::TestCase
     et.controller!
     assert_equal( 'controller tests', et.t_test_type )
 
-    assert( EnumH.respond_to?(:t_test_types) )
     assert_equal(  [["Unit::Test", "unit_test"],
                     ["Cannot create option for spec ( proc fails to evaluate )", "spec"],
                     ["Cannot create option for view ( proc fails to evaluate )", "view"],
                     ["Cannot create option for controller because of a lambda", "controller"],
                     ["Integration", "integration"]],
-                   EnumH.t_test_types_options
+                   EnumH.test_types.t_options
     )
     assert_equal( [["Unit::Test", 0],
                    ["Cannot create option for spec ( proc fails to evaluate )", 1],
                    ["Cannot create option for view ( proc fails to evaluate )", 2],
                    ["Cannot create option for controller because of a lambda", 3],
-                   ["Integration", 4]], EnumH.t_test_types_options_i )
+                   ["Integration", 4]], EnumH.test_types.t_options_i )
 
   end
 
@@ -204,6 +203,7 @@ class EnumExtTest < ActiveSupport::TestCase
 
     ehb = EnumHB.create
 
+    assert_equal( I18n.available_locales, [:ru, :en] )
     #locales must change correctly
     I18n.available_locales.each do |locale|
       I18n.locale = locale
@@ -214,11 +214,15 @@ class EnumExtTest < ActiveSupport::TestCase
     end
 
     I18n.locale = :en
-    assert_equal( EnumHB.t_test_types_options,
+    assert_equal( EnumHB.test_types.t_options,
                   [["unittest", "unit_test"], ["spec tests", "spec"],
                    ["viewer tests", "view"], ["controller tests", "controller"],
                    ["integration tests", "integration"]] )
 
+  end
+
+  test 't helper is defined' do
+    assert( build_mock_class.test_types.respond_to?(:t) )
   end
 
   test 'translate' do
@@ -235,56 +239,53 @@ class EnumExtTest < ActiveSupport::TestCase
     et = EnumT.create(test_type: :integration)
     assert_equal( 'integration tests', et.t_test_type )
 
-    assert( EnumT.respond_to?(:t_test_types) )
     assert_equal( [["unittest", "unit_test"], ["spec tests", "spec"],
                    ["viewer tests", "view"], ["controller tests", "controller"],
-                   ["integration tests", "integration"]], EnumT.t_test_types_options )
+                   ["integration tests", "integration"]], EnumT.test_types.t_options )
     assert_equal( [["unittest", 0], ["spec tests", 1],
                    ["viewer tests", 2], ["controller tests", 3],
-                   ["integration tests", 4]], EnumT.t_test_types_options_i )
+                   ["integration tests", 4]], EnumT.test_types.t_options_i )
 
     EnumT.enum_supersets :test_type, raw_level: [:unit_test, :spec]
 
-    assert_equal( [["unittest", "unit_test"], ["spec tests", "spec"] ], EnumT.t_raw_level_test_types_options )
-    assert_equal( [["unittest", 0], ["spec tests", 1]], EnumT.t_raw_level_test_types_options_i )
+    assert_equal( [["unittest", "unit_test"], ["spec tests", "spec"] ], EnumT.test_types.t_raw_level_options )
+    assert_equal( [["unittest", 0], ["spec tests", 1]], EnumT.test_types.t_raw_level_options_i )
 
     # locales must be able change at runtime, not just initialization time
     I18n.locale = :ru
     assert_equal('Интеграционые тесты',  et.t_test_type )
 
-    assert( EnumT.respond_to?(:t_test_types) )
+
     assert_equal( [["Юнит тест", "unit_test"], ["Спеки", "spec"],
                    ["Тесты вьюшек ( что конечно перебор )", "view"], ["Контроллер тест", "controller"],
-                   ["Интеграционые тесты", "integration"]], EnumT.t_test_types_options )
+                   ["Интеграционые тесты", "integration"]], EnumT.test_types.t_options )
     assert_equal( [["Юнит тест", 0], ["Спеки", 1],
                    ["Тесты вьюшек ( что конечно перебор )", 2], ["Контроллер тест", 3],
-                   ["Интеграционые тесты", 4]], EnumT.t_test_types_options_i )
+                   ["Интеграционые тесты", 4]], EnumT.test_types.t_options_i )
 
     EnumT.enum_supersets :test_type, raw_level: [:unit_test, :spec]
 
-    assert_equal( [["Юнит тест", "unit_test"], ["Спеки", "spec"]],EnumT.t_raw_level_test_types_options )
-    assert_equal( [["Юнит тест", 0], ["Спеки", 1]], EnumT.t_raw_level_test_types_options_i )
+    assert_equal( [["Юнит тест", "unit_test"], ["Спеки", "spec"]],EnumT.test_types.t_raw_level_options )
+    assert_equal( [["Юнит тест", 0], ["Спеки", 1]], EnumT.test_types.t_raw_level_options_i )
   end
 
   test 'mass assign' do
-    EnumMA = EnumExtMock
-
     # adds class methods with bang: unit_test!, spec! e.t.c
-    EnumMA.mass_assign_enum :test_type
+    MassAssignTestClass.mass_assign_enum :test_type
 
-    ema = EnumMA.create(test_type: :spec)
+    ema = MassAssignTestClass.create(test_type: :spec)
 
     assert( ema.spec? )
 
-    EnumMA.spec.integration!
-    assert( EnumMA.integration.exists?( ema.id ) )
+    MassAssignTestClass.spec.integration!
+    assert( MassAssignTestClass.integration.exists?( ema.id ) )
 
-    ema_child = ema.enum_ext_mocks.create(test_type: :view)
+    ema_child = ema.enum_ext_mocks.create!(test_type: "view")
     assert( ema_child.view? )
-    assert( !EnumMA.controller.exists?( ema_child.id ) )
+    assert( !MassAssignTestClass.controller.exists?( ema_child.id ) )
 
     ema.enum_ext_mocks.controller!
-    assert( EnumMA.controller.exists?( ema_child.id ) )
+    assert( MassAssignTestClass.controller.exists?( ema_child.id ) )
   end
 
   test 'humanize_attr class method' do
@@ -307,7 +308,6 @@ class EnumExtTest < ActiveSupport::TestCase
     assert( et.spec? )
 
     et.update( t_test_type: :controller )
-
     assert( et.reload.controller? )
   end
 

@@ -243,6 +243,24 @@ Rem: you can refer previously defined set as usual kind in the same method call:
     order.requests.delivered.count              # >> N + M
 ```
 
+## Inline definitions. Starting 0.5.0
+Starting version 0.4.6 you can activate extensions during enum definition, using `ext: [...]` notation.
+This is a preferable way now:
+
+```ruby
+    #Instead of three method calls:    
+    enum kind: {}
+    enum_i :kind
+    enum_mass_assign :kind
+
+    #You should go with ext  option instead:
+    enum kinds: {}, ext: [:enum_i, :enum_mass_assign]
+
+    # OR in case of standalone enum definition:
+    enum kinds: {}
+    enum_ext [:enum_i, :enum_mass_assign, supersets: {} ]
+```
+
 ## Tests
    rake test
  

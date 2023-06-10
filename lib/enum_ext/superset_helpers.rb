@@ -9,10 +9,16 @@ module EnumExt::SupersetHelpers
   # For this call:
   #   enum_supersets :status, {
   #                   delivery_set: [:ready_for_shipment, :on_delivery, :delivered] # for shipping department for example
-  #                   in_warehouse: [:ready_for_shipment]       # this scope is just for superposition example below
+  #                   in_warehouse: [:ready_for_shipment]            # this scope is just for superposition example below
   #                 }
+  #Rem:
+  #  enum_supersets can be called twice defining a superposition of already defined supersets
+  #  based on array operations, with already defined array methods ( considering previous example ):
+  #  enum_supersets :status, {
+  #                  outside_warehouse: ( delivery_set_statuses - in_warehouse_statuses )... any other array operations like &, + and so can be used
+  #                }
   #
-  # it will generate:
+  # so the enum_supersets will generate:
   #   instance:
   #     methods: delivery_set?, in_warehouse?
   #   class:
@@ -35,12 +41,6 @@ module EnumExt::SupersetHelpers
   #  Request.in_warehouse.exists?(request)    # >> false
   #
   #  Request.delivery_set_statuses            # >> [:ready_for_shipment, :on_delivery, :delivered]
-
-  #Rem:
-  #  enum_supersets can be called twice defining a superposition of already defined sets ( considering previous example ):
-  #  enum_supersets :status, {
-  #                  outside_warehouse: ( delivery_set_statuses - in_warehouse_statuses )... any other array operations like &, + and so can be used
-  #                }
   def enum_supersets( enum_name, options = {} )
     enum_plural = enum_name.to_s.pluralize
 
@@ -57,10 +57,11 @@ module EnumExt::SupersetHelpers
       options.each do |superset_name, enum_vals|
         # superset_statuses
         superset_enum_name = "#{superset_name}_#{enum_plural}"
+
         # class.superset_statuses
         define_singleton_method(superset_enum_name) { enum_obj.superset_to_enum(*enum_vals) }
 
-        # set_name scope
+        # superset_name scope
         scope superset_name, -> { where( enum_name => send(superset_enum_name) ) } if respond_to?(:scope)
 
         # instance.superset_name?
