@@ -33,9 +33,55 @@ class EnumExtTest < ActiveSupport::TestCase
     end
   end
 
+  test 'enum ext: supersets with a "superset" of one kind (regression)' do
+    EnumSupersetsRegress = build_mock_class_without_enum
+
+    assert_nothing_raised do
+      EnumSupersetsRegress.enum test_type: %i[unit_test spec view controller integration],
+                         ext: [enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+    end
+
+    es = EnumSupersetsRegress.create( test_type: :integration )
+
+    assert(es.integration?)
+    assert(es.slow?)
+  end
+
+  test 'enum ext: supersets using nested supersets' do
+    EnumSupersetsRecursive = build_mock_class_without_enum
+
+    EnumSupersetsRecursive.enum test_type: %i[unit_test spec view controller integration],
+                              ext: [ enum_supersets: {
+                                        fast: %i[unit_test spec],
+                                        slow: :integration,
+                                        automatable: %i[fast slow],
+                                      }]
+
+
+    es = EnumSupersetsRecursive.create( test_type: :integration )
+
+    assert(es.automatable?)
+    assert(es.slow?)
+
+    es.view!
+    assert_not(es.automatable?)
+  end
+
+  # test 'enum ext prefixes' do
+  #   EnumSupersetsPref = build_mock_class_without_enum
+  #
+  #   EnumSupersetsPref.enum test_type: %i[unit_test spec view controller integration],
+  #                      _suffix: true,
+  #                      ext: [:enum_i, enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+  #
+  #   es = EnumSupersetsPref.create( test_type: :integration )
+  #
+  #   assert(es.slow_test_type?)
+  # end
+
   test 'enum_i' do
     EnumI = build_mock_class
-    EnumI.enum_i(:test_type)
+    EnumI.enum_ext :test_type, :enum_i
 
     EnumI.test_types.each_value do |tt|
       ei = EnumI.new(test_type: tt)
@@ -50,7 +96,7 @@ class EnumExtTest < ActiveSupport::TestCase
     # class:
     #   - with_test_types, without_test_types also scopes but with params,
     #     allows to combine and negate defined sets and enum values
-    EnumMultiScope.multi_enum_scopes :test_type
+    EnumMultiScope.enum_ext :test_type, :multi_enum_scopes
 
     assert_equal( EnumMultiScope.without_test_types(:unit_test, :spec).map(&:test_type).uniq.sort,
                   ["integration", "controller", "view"].uniq.sort)
@@ -68,11 +114,12 @@ class EnumExtTest < ActiveSupport::TestCase
   test 'enum_supersets instance methods working as expected' do
     EnumSetNestedDef = build_mock_class
 
-    EnumSetNestedDef.enum_supersets :test_type,
-                               raw_level: [:unit_test, :spec],
-                               high_level: [:view, :controller, :integration],
-                               fast: [:raw_level, :controller],
-                               minitest: [:raw_level, :high_level]
+    EnumSetNestedDef.enum_ext :test_type, enum_supersets: {
+      raw_level: [:unit_test, :spec],
+      high_level: [:view, :controller, :integration],
+      fast: [:raw_level, :controller],
+      minitest: [:raw_level, :high_level]
+    }
 
     es = EnumSetNestedDef.create( test_type: :unit_test )
 
@@ -102,14 +149,16 @@ class EnumExtTest < ActiveSupport::TestCase
     #   - t_raw_level_test_types, t_high_level_test_types - subset of translation or humanization rules
     #   - t_raw_level_test_types_options, t_high_level_test_types_options - translated options ready for form select inputs
     #   - t_raw_level_test_types_options_i, t_high_level_test_types_options_i - same as above but used integer in selects not strings, usefull in Active Admin
-    EnumSet.enum_supersets :test_type,
-                        raw_level: [:unit_test, :spec],
-                        high_level: [:view, :controller, :integration]
+    EnumSet.enum_ext :test_type, enum_supersets: {
+      raw_level: [:unit_test, :spec],
+      high_level: [:view, :controller, :integration]
+    }
 
     EnumSet.instance_eval do
-      enum_supersets :test_type,
-                      fast: raw_level_test_types | [:controller],
-                      minitest: ( raw_level_test_types | high_level_test_types )
+      enum_ext :test_type, enum_supersets: {
+        fast: test_types.raw_level_test_types | [:controller],
+        minitest: ( test_types.raw_level_test_types | test_types.high_level_test_types )
+      }
     end
 
     assert_equal(
@@ -125,7 +174,7 @@ class EnumExtTest < ActiveSupport::TestCase
     assert( !es.high_level? )
     assert( EnumSet.raw_level.exists?( es.id ) )
 
-    assert_equal(%w[unit_test spec], EnumSet.raw_level_test_types )
+    assert_equal(%w[unit_test spec], EnumSet.test_types.raw_level_test_types )
 
     # since translation wasn't defined
     assert_equal([["Enum translations are missing. Did you forget to translate test_type"]*2].to_h, EnumSet.test_types.t_raw_level )
@@ -246,7 +295,7 @@ class EnumExtTest < ActiveSupport::TestCase
                    ["viewer tests", 2], ["controller tests", 3],
                    ["integration tests", 4]], EnumT.test_types.t_options_i )
 
-    EnumT.enum_supersets :test_type, raw_level: [:unit_test, :spec]
+    EnumT.enum_ext :test_type, enum_supersets: { raw_level: [:unit_test, :spec] }
 
     assert_equal( [["unittest", "unit_test"], ["spec tests", "spec"] ], EnumT.test_types.t_raw_level_options )
     assert_equal( [["unittest", 0], ["spec tests", 1]], EnumT.test_types.t_raw_level_options_i )
@@ -263,7 +312,7 @@ class EnumExtTest < ActiveSupport::TestCase
                    ["Тесты вьюшек ( что конечно перебор )", 2], ["Контроллер тест", 3],
                    ["Интеграционые тесты", 4]], EnumT.test_types.t_options_i )
 
-    EnumT.enum_supersets :test_type, raw_level: [:unit_test, :spec]
+    EnumT.enum_ext :test_type, enum_supersets: { raw_level: [:unit_test, :spec] }
 
     assert_equal( [["Юнит тест", "unit_test"], ["Спеки", "spec"]],EnumT.test_types.t_raw_level_options )
     assert_equal( [["Юнит тест", 0], ["Спеки", 1]], EnumT.test_types.t_raw_level_options_i )
@@ -271,7 +320,7 @@ class EnumExtTest < ActiveSupport::TestCase
 
   test 'mass assign' do
     # adds class methods with bang: unit_test!, spec! e.t.c
-    MassAssignTestClass.mass_assign_enum :test_type
+    MassAssignTestClass.enum_ext :test_type, :mass_assign_enum
 
     ema = MassAssignTestClass.create(test_type: :spec)
 
@@ -311,14 +360,14 @@ class EnumExtTest < ActiveSupport::TestCase
     assert( et.reload.controller? )
   end
 
-  test 'no AR model is OK with enum_supersets' do
+  test 'no AR model is OK with enum_supersets. Regression test for store model issue' do
     NoARClass = build_mock_class
 
     class << NoARClass
       undef_method :scope
     end
 
-    NoARClass.enum_supersets :test_type, raw_level: [:unit_test, :spec]
+    NoARClass.enum_ext :test_type,  enum_supersets: { raw_level: [:unit_test, :spec] }
 
     no_ar = NoARClass.new( test_type: :unit_test )
     assert( no_ar.raw_level? )

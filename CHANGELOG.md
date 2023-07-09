@@ -1,3 +1,9 @@
+# 0.6.0 (BREAKING CHANGES)
+* fixed issue with non array superset
+* standard helpers are now private, you should use enum_ext / enum , ext: []  approach to the definitions
+* class.superset_statuses moved to enum_obj -> class.statuses.superset_statuses
+* massive ReadMe refactoring
+
 # 0.5.3
 * refactored tests
 * multi_enum_scopes will be chainable with empty params (i.e. will not change the scope)
