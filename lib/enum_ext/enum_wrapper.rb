@@ -2,15 +2,19 @@
 # Since enum values will be freezed right after the definition, we can't enrich enum directly functionality
 # We can only wrap it with our own object and delegate enum base base functionality internally
 class EnumExt::EnumWrapper
+  # supersets is storing exact definitions, if you need a raw mapping use class.statuses.superset_statuses
   attr_reader :enum_values, :supersets, :t_options_raw, :localizations
   delegate_missing_to :enum_values
 
-  def initialize(enum_values)
+  def initialize(enum_values, base_class, enum_name)
     @enum_values = enum_values
     @supersets = ActiveSupport::HashWithIndifferentAccess.new
 
     @t_options_raw = ActiveSupport::HashWithIndifferentAccess.new
     @localizations = ActiveSupport::HashWithIndifferentAccess.new
+
+    @base_class = base_class
+    @enum_name = enum_name
   end
 
   #  ext_sets_to_kinds( :ready_for_shipment, :delivery_set ) -->

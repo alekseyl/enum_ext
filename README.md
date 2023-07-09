@@ -49,7 +49,31 @@ Or install it yourself as:
      end
 ```
 
- Now let's review some examples of possible enum extensions
+## Inline definitions. Starting 0.5.0!! BREAKING CHANGES!
+
+Starting version 0.4.6 you can activate most of the extensions during enum definition, using `ext: [...]` notation.
+This was done with a aim of concise and clearer code base. 
+This is a preferable way now, and old helpers will be private starting version 0.6:
+
+```ruby
+    #Instead of three method calls:    
+    enum kind: {}
+    enum_i :kind # will raise an private method error starting ver 0.6
+    enum_mass_assign :kind # will raise an private method error starting ver 0.6
+
+    #You should go with ext  option instead:
+    enum kinds: {}, ext: [:enum_i, :enum_mass_assign]
+
+    # OR in case of standalone enum definition:
+    enum kinds: {} # somewhere where you can't or don't want reach 
+    enum_ext :kinds, [:enum_i, :enum_mass_assign, enum_supersets: {} ]
+```
+Rem: enum_ext could be called multiple times and merge later definitions, though I can't imagine why would you split it to multiple calls. 
+
+Rem: The only exceptions for the new syntax are translation/humanization helpers. 
+     Those will not add any clarity to code, and should be used via standalone helpers
+
+## Humanization and localization
 
 ### Humanization (humanize_enum) 
   
@@ -81,7 +105,7 @@ Or install it yourself as:
 
   ```ruby
       humanize_enum :status do
-       I18n.t("scope.#{status}")
+        I18n.t("scope.#{status}")
       end
   ```
   
@@ -95,7 +119,6 @@ Or install it yourself as:
   ```ruby
     filter :status, as: :select, label: 'Status', collection: Request.t_statuses_options_i
   ```
- 
   
   **Rem:** select options may break when using lambda() or proc with instance method, but will survive with block
   
@@ -113,6 +136,7 @@ Or install it yourself as:
 ### Translate (translate_enum) 
 
 Enum is translated using scope 'active_record.attributes.class_name_underscore.enum_plural', or the given one:
+
 ```ruby
    translate_enum :status, 'active_record.request.enum'
 ```
@@ -124,7 +148,10 @@ Or it can be done with block either with translate or humanize:
    end
 ```
 
+## Enum extended functionality
+
 ### Enum to_i shortcut ( enum_i )
+
 Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name] or enum_name_before_type_cast
 
 **Ex** 
@@ -135,11 +162,11 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name] or enum
   request.paid_i # 10
 ```
 
-### Enum Sets (ext_enum_sets)
+### Enum SuperSets (enum_supersets)
  
- **Use-case** whenever you need superset of enums to behave like a enum.
+ **Use-case** whenever you need superset of enums to behave like a super enum.
  
- You can do this with method **ext_enum_sets** it creates: 
+ You can do this with method **enum_supersets** it creates: 
    - scopes for subsets, 
    - instance methods with `?` 
    - and some class methods helpers
@@ -147,10 +174,19 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name] or enum
    For instance:
 
 ```ruby
-    ext_enum_sets :status, {
-        delivery_set: [:ready_for_shipment, :on_delivery, :delivered], # for shipping department for example
-        in_warehouse: [:ready_for_shipment]  
-    }
+     enum status: [:in_cart, :waiting_for_payment, :paid, :packing, :ready_for_shipment, :on_delivery, :delivered],
+          ext: [supersets: {
+                  delivery_set: [:ready_for_shipment, :on_delivery], # for shipping department for example
+                  in_warehouse: [:packing, :ready_for_shipment],    # this scope is just for superposition example below
+                  sold: [:paid, :delivery_set, :in_warehouse, :delivered] # also you can define any superposition of already defined supersets or enum values
+                }]
+
+     # supersets will be stored inside enum wrapper object, and can be de-referenced to basic enum values 
+     # using wrapper defined methods: "superset_enum_plural", i.e. statuses.sold_statuses -> [:paid, :packing, :ready_for_shipment, :on_delivery, :delivered]
+     # so new supersets could be defined using Array operations against newly defined methods
+     enum_ext :status, enum_supersets: {
+                    outside_warehouse: ( statuses.delivery_set_statuses - statuses.in_warehouse_statuses ) #... any other array operations like &, + and so can be used
+                  }
 ```
 
 it will generate:
@@ -181,10 +217,10 @@ class:
     Request.delivery_set_statuses            # >> ["ready_for_shipment", "on_delivery", "delivered"]
 ```
 Rem:
-ext_enum_sets can be called multiple times defining a superposition of already defined sets ( considering previous example ):
+supersets creation could be called multiple times defining a superposition of already defined sets ( considering previous example ):
 
 ```ruby
- ext_enum_sets :status, {
+ enum_ext :status, enum_supersets: {
    outside_wharehouse: ( delivery_set_statuses - in_warehouse_statuses )#... any other array operations like &, + and so can be used
  }
 ```
@@ -192,7 +228,7 @@ ext_enum_sets can be called multiple times defining a superposition of already d
 Rem: you can refer previously defined set as usual kind in the same method call:
     
 ```ruby
-    ext_enum_sets :status, {
+    enum_ext :status, enum_supersets: {
         delivery_set: [:ready_for_shipment, :on_delivery, :delivered],
         not_in_cart: [:paid, :delivery_set] #
     }
@@ -243,29 +279,14 @@ Rem: you can refer previously defined set as usual kind in the same method call:
     order.requests.delivered.count              # >> N + M
 ```
 
-## Inline definitions. Starting 0.5.0
-Starting version 0.4.6 you can activate extensions during enum definition, using `ext: [...]` notation.
-This is a preferable way now:
-
-```ruby
-    #Instead of three method calls:    
-    enum kind: {}
-    enum_i :kind
-    enum_mass_assign :kind
-
-    #You should go with ext  option instead:
-    enum kinds: {}, ext: [:enum_i, :enum_mass_assign]
-
-    # OR in case of standalone enum definition:
-    enum kinds: {}
-    enum_ext [:enum_i, :enum_mass_assign, supersets: {} ]
-```
-
 ## Tests
    rake test
  
 ## Development
 
+## TODO
+[] better support for suffix/prefix as enum does
+[] describe method to observe current extension 
 
 ## Contributing
 
@@ -276,6 +297,6 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/alekse
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
-### Thanks
 
-Thanks for the star vzamanillo, it inspires me to do mass refactor and gracefully cover code in this gem by tests.
+### Thanks
+Thanks for the first star to vzamanillo, it inspires me to do mass refactor and gracefully cover code in this gem by tests.

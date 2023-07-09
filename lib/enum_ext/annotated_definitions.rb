@@ -1,19 +1,19 @@
 module AnnotatedDefinitions
+  def describe
+    enabled_features
+  end
 
-  def self.extended(other)
-    other.instance_eval do
-      @enum_ext_short_definition = {
-        enum_i: false,
-        mass_assign: false,
-        multi_scopes: false,
-        sets: {},
-        translations: {},
-        humanization: {}
-      }
-      def set_scope_added( options )
-
-      end
-    end
+  def enabled_features
+    enum_sample = keys.first
+    {
+      enum_i: base_class.instance_methods.include?( "#{enum_sample}_i") && enum_sample,
+      mass_assign: base_class.respond_to?("#{enum_sample}!") && enum_sample,
+      multi_scopes: base_class.respond_to?("with_#{enum_name}") && enum_name,
+      supersets: supersets,
+      translations: try(:t_options),
+      humanization: try(:t_options)
+    }
+  end
 
     # other.instance_eval do
     #   annotations_method = "#{other.to_s.downcase}_annotations"
@@ -44,6 +44,6 @@ module AnnotatedDefinitions
     #     defined?(ap) ? ap( annotations ) : pp( annotations )
     #   end
     # end
-  end
 end
+
 

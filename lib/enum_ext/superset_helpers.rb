@@ -1,16 +1,19 @@
 module EnumExt::SupersetHelpers
   # enum_supersets
-  # This method intend for creating and using some sets of enum values
+  # This method intend for creating and using some sets of enum values,
+  # you should
   #
   # it creates: scopes for subsets,
   #             instance method with ?,
   #             and some class methods helpers
   #
   # For this call:
-  #   enum_supersets :status, {
-  #                   delivery_set: [:ready_for_shipment, :on_delivery, :delivered] # for shipping department for example
-  #                   in_warehouse: [:ready_for_shipment]            # this scope is just for superposition example below
-  #                 }
+  #   enum status: [:in_cart, :waiting_for_payment, :paid, :packing, :ready_for_shipment, :on_delivery, :delivered],
+  #      ext:[  , supersets: {
+  #                   delivery_set: [:ready_for_shipment, :on_delivery] # for shipping department for example
+  #                   in_warehouse: [:packing, :ready_for_shipment]            # this scope is just for superposition example below
+  #                   sold: [:payd, :delivery_set, :in_warehouse, :delivered]
+  #                 } ]
   #Rem:
   #  enum_supersets can be called twice defining a superposition of already defined supersets
   #  based on array operations, with already defined array methods ( considering previous example ):
@@ -41,6 +44,7 @@ module EnumExt::SupersetHelpers
   #  Request.in_warehouse.exists?(request)    # >> false
   #
   #  Request.delivery_set_statuses            # >> [:ready_for_shipment, :on_delivery, :delivered]
+  private
   def enum_supersets( enum_name, options = {} )
     enum_plural = enum_name.to_s.pluralize
 
@@ -52,21 +56,21 @@ module EnumExt::SupersetHelpers
       DEPRECATION
 
       enum_obj = send(enum_plural)
-      enum_obj.supersets.merge!( options.transform_values{ _1.map(&:to_s) } )
+      enum_obj.supersets.merge!( options.transform_values{ _1.try(:map, &:to_s) || _1.to_s } )
 
       options.each do |superset_name, enum_vals|
         # superset_statuses
         superset_enum_name = "#{superset_name}_#{enum_plural}"
 
-        # class.superset_statuses
-        define_singleton_method(superset_enum_name) { enum_obj.superset_to_enum(*enum_vals) }
+        # class.statuses.superset_statuses
+        enum_obj.define_singleton_method(superset_enum_name) { enum_obj.superset_to_enum(*enum_vals) }
 
         # superset_name scope
-        scope superset_name, -> { where( enum_name => send(superset_enum_name) ) } if respond_to?(:scope)
+        scope superset_name, -> { where( enum_name => enum_obj.send(superset_enum_name) ) } if respond_to?(:scope)
 
         # instance.superset_name?
         define_method "#{superset_name}?" do
-          send(enum_name) && self.class.send(superset_enum_name).include?( send(enum_name) )
+          send(enum_name) && enum_obj.send(superset_enum_name).include?( send(enum_name) )
         end
 
         EnumExt::HumanizeHelpers.define_superset_humanization_helpers( self, superset_name, enum_name )

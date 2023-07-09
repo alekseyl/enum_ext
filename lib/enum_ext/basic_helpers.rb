@@ -4,6 +4,7 @@ module EnumExt::BasicHelpers
   # for enum named 'status' will generate:
   #
   # instance.status_i
+  private
   def enum_i( enum_name )
     define_method "#{enum_name}_i" do
       self.class.send("#{enum_name.to_s.pluralize}")[send(enum_name)].to_i
