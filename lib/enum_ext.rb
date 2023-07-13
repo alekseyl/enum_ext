@@ -73,12 +73,22 @@ module EnumExt
   # extending enum with inplace settings
   # enum status: {}, ext: [:enum_i, :mass_assign_enum, :enum_multi_scopes]
   # enum_i and mass_assign_enum ara
-  def enum(definitions)
-    extensions = definitions.delete(:ext)
-
-    super(definitions).tap do
-      definitions.each do |name,|
-        [*extensions].each{|ext_method| send(ext_method, name) }
+  if Rails::VERSION::MAJOR >= 7
+    def _enum(name, values, prefix: nil, suffix: nil, scopes: true, **options)
+      extensions = options.delete(:ext)
+  
+      super(name, values, prefix:, suffix:, scopes:, **options).tap do
+        [*extensions].each{ |ext_method| send(ext_method, name) }
+      end
+    end
+  else
+    def enum(definitions)
+      extensions = definitions.delete(:ext)
+  
+      super(definitions).tap do
+        definitions.each do |name,|
+          [*extensions].each{|ext_method| send(ext_method, name) }
+        end
       end
     end
   end
