@@ -1,3 +1,8 @@
+# 0.7.0 
+* rails 7 syntax support added
+* massive test process refactoring docker with both rails 7 and earlier support
+* simple translate_enum allowed via `ext: [:translate_enum]`
+
 # 0.6.0 (BREAKING CHANGES)
 * fixed issue with non array superset
 * standard helpers are now private, you should use enum_ext / enum , ext: []  approach to the definitions

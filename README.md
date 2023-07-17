@@ -51,9 +51,8 @@ Or install it yourself as:
 
 ## Inline definitions. Starting 0.5.0!! BREAKING CHANGES!
 
-Starting version 0.4.6 you can activate most of the extensions during enum definition, using `ext: [...]` notation.
-This was done with a aim of concise and clearer code base. 
-This is a preferable way now, and old helpers will be private starting version 0.6:
+Starting version 0.4.6, for concise and clearer code base, you can activate most of the extensions during enum definition, using `ext: [...]` notation.
+This is a preferable way now, and old helpers are private starting version 0.6!:
 
 ```ruby
     #Instead of three method calls:    
@@ -70,8 +69,19 @@ This is a preferable way now, and old helpers will be private starting version 0
 ```
 Rem: enum_ext could be called multiple times and merge later definitions, though I can't imagine why would you split it to multiple calls. 
 
-Rem: The only exceptions for the new syntax are translation/humanization helpers. 
-     Those will not add any clarity to code, and should be used via standalone helpers
+Rem: The only exceptions for the new syntax are full translation/humanization helpers definitions. 
+     Those will not add any clarity to code, and should be used via standalone helpers. 
+     But standard translate_enum without definitions still welcome:
+
+```ruby
+# GOOD: 
+  enum_ext :kinds, [:enum_i, :enum_mass_assign, :translate_enum, enum_supersets: {}]
+
+# BAD (even if correctly defines internationalization): 
+  enum_ext :kinds, [:enum_i, :enum_mass_assign, :translate_enum, enum_supersets: {}] do
+    I18n.t("scope.#{kind}")
+  end
+```
 
 ## Humanization and localization
 
@@ -175,7 +185,7 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name] or enum
 
 ```ruby
      enum status: [:in_cart, :waiting_for_payment, :paid, :packing, :ready_for_shipment, :on_delivery, :delivered],
-          ext: [supersets: {
+          ext: [enum_supersets: {
                   delivery_set: [:ready_for_shipment, :on_delivery], # for shipping department for example
                   in_warehouse: [:packing, :ready_for_shipment],    # this scope is just for superposition example below
                   sold: [:paid, :delivery_set, :in_warehouse, :delivered] # also you can define any superposition of already defined supersets or enum values
@@ -280,8 +290,11 @@ Rem: you can refer previously defined set as usual kind in the same method call:
 ```
 
 ## Tests
-   rake test
- 
+Starting version 0.6 added support for rails 7+ enum definitions, that's making testing a little bit not that easy as running `rake test`.
+Now testings are done via `docker-compose up`. Look closer to Dockerfiles and `docker-compose.yml` 
+to get the idea how they working simultaneously without interference with each other. 
+
+
 ## Development
 
 ## TODO

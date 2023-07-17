@@ -6,6 +6,13 @@ class EnumExtTest < ActiveSupport::TestCase
     klass.test_types.keys.each { |tk| klass.create( test_type: tk ) }
   end
 
+  test 'enum ext: translate_enum' do
+    EnumExtTranslateDirect = build_mock_class_without_enum
+    EnumExtTranslateDirect.stub_must( :translate_enum, ->(*args) { assert_equal(args, [:test_type]) } ) do
+      EnumExtTranslateDirect.enum test_type: [:unit_test], ext: [:enum_i, :mass_assign_enum, :translate_enum]
+    end
+  end
+
   test 'enum ext: array' do
     EnumExtDirect = build_mock_class_without_enum
     EnumExtDirect.stub_must_all(

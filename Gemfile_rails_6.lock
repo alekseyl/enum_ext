@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    enum_ext (0.5.3)
+    enum_ext (0.6.0.alpha)
       activerecord (>= 5.2.4.3)
 
 GEM
@@ -94,4 +94,4 @@ DEPENDENCIES
   stubberry
 
 BUNDLED WITH
-   2.1.4
+   2.4.17

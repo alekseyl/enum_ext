@@ -41,11 +41,20 @@ module EnumExt
   # extending enum with inplace settings
   # enum status: {}, ext: [:enum_i, :mass_assign_enum, :enum_multi_scopes, enum_supersets: {  }]
   # and wrapping and replacing original enum with a wrapper object
-  def enum(definitions)
-    extensions = definitions.delete(:ext)
+  #
+  # I'm using signature of a ActiveRecord 7 here: enum(name = nil, values = nil, **options)
+  # in earlier versions of ActiveRecord signature looks different: enum(definitions),
+  # so calling super should be different based on ActiveRecord major version
+  def enum(name = nil, values = nil, **options)
+    single_enum_definition = name.present?
+    extensions = options.delete(:ext)
 
-    super(definitions).tap do |_enum|
-      _enum.each { |enum_name,| enum_ext(enum_name, extensions) }
+    (ActiveRecord::VERSION::MAJOR >= 7 ? super : super(options)).tap do |multiple_enum_definitions|
+      if single_enum_definition
+        enum_ext(name, extensions)
+      else
+        multiple_enum_definitions.each { |enum_name,| enum_ext(enum_name, extensions) }
+      end
     end
   end
 
