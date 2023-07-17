@@ -1,0 +1,24 @@
+version: "3.7"
+
+services:
+  test:
+    build: .
+    image: enum_ext
+    command: rake test
+    volumes:
+      - './lib:/app/lib'
+      - './test:/app/test'
+      - './Gemfile_rails_6:/app/Gemfile'
+      - './Gemfile_rails_6.lock:/app/Gemfile.lock'
+
+  test_7_0:
+    build:
+      context: .
+      dockerfile: Dockerfile_rails_7
+    image: enum_ext_rails_7
+    command: rake test
+    volumes:
+      - './lib:/app/lib'
+      - './test:/app/test'
+      - './Gemfile_rails_7:/app/Gemfile'
+      - './Gemfile_rails_7.lock:/app/Gemfile.lock'
