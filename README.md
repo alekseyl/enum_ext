@@ -7,7 +7,7 @@ EnumExt extends rails enum with localization/translation and it's helpers, mass-
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'enum_ext', '~> 0.3'
+gem 'enum_ext', '~> 0.7'
 ```
 
 And then execute:
@@ -179,7 +179,6 @@ Defines method enum_name_i shortcut for Model.enum_names[elem.enum_name] or enum
  You can do this with method **enum_supersets** it creates: 
    - scopes for subsets, 
    - instance methods with `?` 
-   - and some class methods helpers
    
    For instance:
 
@@ -208,13 +207,17 @@ instance:
 class:
     - named scopes: delivery_set, in_warehouse
     - parametrized scopes: with_statuses, without_statuses ( available as a standalone extension now, and will not be included by default in a versionafter 0.5.0)
-    class helpers:
-        - delivery_set_statuses (=[:ready_for_shipment, :on_delivery, :delivered] ), in_warehouse_statuses
-        - delivery_set_statuses_i (= [3,4,5]), in_warehouse_statuses_i (=[3])
 
-     class translation helpers ( started with t_... ):
-        - t_delivery_set_statuses_options (= [['translation or humanization', :ready_for_shipment] ...] ) for select inputs purposes
-        - t_delivery_set_statuses_options_i (= [['translation or humanization', 3] ...]) same as above but with integer as value ( for example to use in Active admin filters )
+enum methods:    
+    - Class.statuses.supersets -- will output superset definition hash
+    - Class.statuses.supersets_raw -- will output superset decompositions to basic enum types hash 
+    
+    - Class.statuses.delivery_superset (=[:ready_for_shipment, :on_delivery, :delivered] ), in_warehouse_statuses
+    - delivery_set_statuses_i (= [3,4,5]), in_warehouse_statuses_i (=[3])
+
+    translation helpers ( started with t_... ):
+    - Class.statuses.t_delivery_set_options (= [['translation or humanization', :ready_for_shipment] ...] ) for select inputs purposes
+    - Class.statuses.t_delivery_set_options_i (= [['translation or humanization', 3] ...]) same as above but with integer as value ( for example to use in Active admin filters )
 ```
 
  ```ruby
@@ -288,6 +291,32 @@ Rem: you can refer previously defined set as usual kind in the same method call:
     order.requests.already_paid.count          # >> 0
     order.requests.delivered.count              # >> N + M
 ```
+
+## Annotations helpers
+Sometimes under irb console you need a quick tip on whats extension available on a enum, so some describe_* helpers added to enum wrapper
+
+General description methods (describe/describe_short/describe_long)
+```
+  Class.enum.describe
+```  
+![img.png](img.png)
+
+```
+  Class.enum.describe_short
+```
+![img_1.png](img_1.png)
+
+```
+  Class.enum.describe_long
+```
+![img_2.png](img_2.png)
+
+And per extension methods (describe_enum_i, e.t.c)
+
+```ruby
+ EnumAnnotated.test_types.describe_mass_assign_enum
+```
+![img_3.png](img_3.png)
 
 ## Tests
 Starting version 0.6 added support for rails 7+ enum definitions, that's making testing a little bit not that easy as running `rake test`.

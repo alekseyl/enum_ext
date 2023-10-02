@@ -2,13 +2,18 @@
 # Since enum values will be freezed right after the definition, we can't enrich enum directly functionality
 # We can only wrap it with our own object and delegate enum base base functionality internally
 class EnumExt::EnumWrapper
+  include EnumExt::Annotated
+
   # supersets is storing exact definitions, if you need a raw mapping use class.statuses.superset_statuses
-  attr_reader :enum_values, :supersets, :t_options_raw, :localizations
+  attr_reader :enum_values, :supersets, :supersets_raw, :t_options_raw, :localizations, :base_class, :enum_name
+
   delegate_missing_to :enum_values
+  delegate :inspect, to: :enum_values
 
   def initialize(enum_values, base_class, enum_name)
     @enum_values = enum_values
     @supersets = ActiveSupport::HashWithIndifferentAccess.new
+    @supersets_raw = ActiveSupport::HashWithIndifferentAccess.new
 
     @t_options_raw = ActiveSupport::HashWithIndifferentAccess.new
     @localizations = ActiveSupport::HashWithIndifferentAccess.new
@@ -31,7 +36,7 @@ class EnumExt::EnumWrapper
     {
       **enum_values,
       supersets: {
-        **send(:supersets)
+        **send(:supersets_raw)
       }
     }
   end
@@ -49,17 +54,17 @@ class EnumExt::EnumWrapper
   private
 
   def evaluate_localizations(t_enum_set)
-    # { kind => kind_translation, kind2 => kind2_translation } --> [[kind_translation, kind], [kind2_translation, kind2]]
-    t_enum_set.invert.to_a.map do | translator, name |
+    # { kind => kind_translator, kind2 => kind2_translator } --> [[kind_translator, kind], [kind2_translator, kind2]]
+    t_enum_set.invert.to_a.map do | translator, enum_key |
       # since all procs in t_enum are evaluated in context of a record than it's not always possible to create select options automatically
       translation = if translator.respond_to?(:call)
         if translator.arity < 1
-          translator.call rescue "Cannot create option for #{name} ( proc fails to evaluate )"
+          translator.call rescue "Cannot create option for #{enum_key} ( proc fails to evaluate )"
         else
-          "Cannot create option for #{name} because of a lambda"
+          "Cannot create option for #{enum_key} because of a lambda"
         end
       end || translator
-      [translation, name]
+      [translation, enum_key]
     end
   end
 

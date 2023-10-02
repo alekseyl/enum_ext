@@ -132,7 +132,7 @@ module EnumExt::HumanizeHelpers
     enum_object.define_singleton_method( "t_#{superset_name}" ) do
       return [(["Enum translations are missing. Did you forget to translate #{enum_name}"]*2)].to_h if localizations.blank?
 
-      enum_object.localizations.slice( *enum_object.send("#{superset_name}_#{enum_plural}") )
+      enum_object.localizations.slice( *enum_object.send(superset_name) )
     end
   end
 end

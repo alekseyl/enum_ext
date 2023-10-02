@@ -1,3 +1,10 @@
+# 0.8.0
+* Methods annotations added:
+  * Full descriptions: Class.enum.describe(short=true) / Class.enum.describe_short / Class.enum.describe_long / Class.enum.describe_basic
+  * Per-methods: Class.enum.describe_enum_i, describe_mass_assign_enum, describe_multi_enum_scopes e.t.c.
+* method Class.enum.supersets_raw added, it will return supersets decompositions to basic enum
+* Class.enum.all method now returns basic enum_values + supersets_raw decomposition to basic enums ( previously was a supersets i.e. high level definition )
+
 # 0.7.0 
 * rails 7 syntax support added
 * massive test process refactoring docker with both rails 7 and earlier support

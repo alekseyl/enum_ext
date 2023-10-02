@@ -6,7 +6,6 @@ require 'stubberry'
 require 'rails_sql_prettifier'
 require 'amazing_print'
 
-
 require_relative 'helpers/tally'
 require_relative 'helpers/active_record_initializers'
 require_relative 'helpers/mock_classes_helpers'
