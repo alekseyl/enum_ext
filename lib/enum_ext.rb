@@ -1,4 +1,5 @@
 require "enum_ext/version"
+require "enum_ext/annotated"
 require "enum_ext/enum_wrapper"
 require "enum_ext/humanize_helpers"
 require "enum_ext/basic_helpers"

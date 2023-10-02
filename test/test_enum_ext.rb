@@ -74,6 +74,27 @@ class EnumExtTest < ActiveSupport::TestCase
     assert_not(es.automatable?)
   end
 
+  test 'enum ext Annotated' do
+    EnumAnnotated = build_mock_class_without_enum
+    describers_method_stubs = %i[describe_enum_i describe_mass_assign_enum describe_multi_enum_scopes
+         describe_supersets describe_translations describe_humanizations].map{[_1, _1]}.to_h
+
+    EnumAnnotated.enum test_type: %i[unit_test spec view controller integration],
+                       ext: [ :enum_i, :multi_enum_scopes, :mass_assign_enum,
+                              enum_supersets: {
+                                fast: %i[unit_test spec],
+                                slow: :integration,
+                                automatable: %i[fast slow],
+                              }]
+
+
+    EnumAnnotated.test_types.stub_must_all(describe_basic: true, describe_long: true) {
+      EnumAnnotated.test_types.describe(false)
+    }
+    EnumAnnotated.test_types.stub_must_all(describers_method_stubs) { EnumAnnotated.test_types.describe(false) }
+    assert_nothing_raised { EnumAnnotated.test_types.describe }
+    assert_nothing_raised { EnumAnnotated.test_types.describe(true) }
+  end
   # test 'enum ext prefixes' do
   #   EnumSupersetsPref = build_mock_class_without_enum
   #
@@ -163,8 +184,8 @@ class EnumExtTest < ActiveSupport::TestCase
 
     EnumSet.instance_eval do
       enum_ext :test_type, enum_supersets: {
-        fast: test_types.raw_level_test_types | [:controller],
-        minitest: ( test_types.raw_level_test_types | test_types.high_level_test_types )
+        fast: test_types.raw_level | [:controller],
+        minitest: ( test_types.raw_level | test_types.high_level )
       }
     end
 
@@ -181,7 +202,7 @@ class EnumExtTest < ActiveSupport::TestCase
     assert( !es.high_level? )
     assert( EnumSet.raw_level.exists?( es.id ) )
 
-    assert_equal(%w[unit_test spec], EnumSet.test_types.raw_level_test_types )
+    assert_equal(%w[unit_test spec], EnumSet.test_types.raw_level )
 
     # since translation wasn't defined
     assert_equal([["Enum translations are missing. Did you forget to translate test_type"]*2].to_h, EnumSet.test_types.t_raw_level )
@@ -239,6 +260,7 @@ class EnumExtTest < ActiveSupport::TestCase
                    ["Cannot create option for view ( proc fails to evaluate )", 2],
                    ["Cannot create option for controller because of a lambda", 3],
                    ["Integration", 4]], EnumH.test_types.t_options_i )
+
 
   end
 
@@ -319,8 +341,6 @@ class EnumExtTest < ActiveSupport::TestCase
                    ["Тесты вьюшек ( что конечно перебор )", 2], ["Контроллер тест", 3],
                    ["Интеграционые тесты", 4]], EnumT.test_types.t_options_i )
 
-    EnumT.enum_ext :test_type, enum_supersets: { raw_level: [:unit_test, :spec] }
-
     assert_equal( [["Юнит тест", "unit_test"], ["Спеки", "spec"]],EnumT.test_types.t_raw_level_options )
     assert_equal( [["Юнит тест", 0], ["Спеки", 1]], EnumT.test_types.t_raw_level_options_i )
   end
@@ -342,6 +362,7 @@ class EnumExtTest < ActiveSupport::TestCase
 
     ema.enum_ext_mocks.controller!
     assert( MassAssignTestClass.controller.exists?( ema_child.id ) )
+
   end
 
   test 'humanize_attr class method' do
