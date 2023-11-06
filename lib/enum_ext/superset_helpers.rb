@@ -66,7 +66,7 @@ module EnumExt::SupersetHelpers
         # class.enum_wrapper.superset
         send(enum_plural).define_singleton_method(superset_name) { base_class.send(enum_plural).superset_to_enum(*enum_vals) }
 
-        superset_method_name = send(enum_plural).transform_enum_label(label: superset_name)
+        superset_method_name = send(enum_plural).transform_enum_label(superset_name)
         # superset_name scope
         scope superset_method_name, -> { where( enum_name => send(enum_plural).send(superset_name) ) } if respond_to?(:scope)
 
