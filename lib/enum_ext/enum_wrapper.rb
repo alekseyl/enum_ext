@@ -53,7 +53,7 @@ class EnumExt::EnumWrapper
 
   alias_method :t, :localizations
 
-  def transform_enum_label(label:)
+  def transform_enum_label(label)
     _prefix = if prefix
       prefix == true ? "#{enum_name}_" : "#{prefix}_"
     end

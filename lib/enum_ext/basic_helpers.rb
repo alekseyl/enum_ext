@@ -75,7 +75,7 @@ module EnumExt::BasicHelpers
     enums_names.each do |enum_name|
       enum_plural = enum_name.to_s.pluralize
       self.send(enum_plural).keys.each do |label|
-        method_name = self.send(enum_plural).transform_enum_label(label: label)
+        method_name = self.send(enum_plural).transform_enum_label(label)
         define_singleton_method( "#{method_name}!" ) do
           self.update_all( {enum_name => self.send(enum_plural)[label]}.merge( self.column_names.include?('updated_at') ? {updated_at: Time.now} : {} ))
         end
