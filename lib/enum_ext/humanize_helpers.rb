@@ -34,7 +34,7 @@ module EnumExt::HumanizeHelpers
   #   f.select :status, Request.t_statuses_options
   #
   # in select in Active Admin filter
-  #   collection: Request.t_statuses_options_i
+  #   collection: Request.statuses.t_options_i
   #
   # Rem: select options breaks when using lambda() with params
   #
@@ -48,12 +48,11 @@ module EnumExt::HumanizeHelpers
     enum_name = args.shift
     localization_definitions = args.pop
     enum_plural = enum_name.to_s.pluralize
-    enum_object = send( enum_plural )
 
     self.instance_eval do
       # instance.t_enum
       define_method "t_#{enum_name}" do
-        t = block || enum_object.localizations[send(enum_name)]
+        t = block || self.class.send(enum_plural).localizations[send(enum_name)]
         if t.try(:lambda?)
           t.try(:arity) == 1 && t.call( self ) || t.try(:call)
         elsif t.is_a?(Proc)
@@ -64,7 +63,7 @@ module EnumExt::HumanizeHelpers
       end
 
       # if localization is absent than block must be given
-      enum_object.localizations.merge!(
+      send(enum_plural).localizations.merge!(
         localization_definitions.try(:with_indifferent_access) ||
           send(enum_plural).map do |k, _v|
             # little bit hackerish: instantiate object just with enum setup and then call its t_.. method which
@@ -110,9 +109,8 @@ module EnumExt::HumanizeHelpers
   #
   def self.define_superset_humanization_helpers(base_class, superset_name, enum_name)
     enum_plural = enum_name.to_s.pluralize
-    enum_object = base_class.send(enum_plural)
 
-    enum_object.define_singleton_method( "t_#{superset_name}_options" ) do
+    base_class.send(enum_plural).define_singleton_method( "t_#{superset_name}_options" ) do
       result = evaluate_localizations(send("t_#{superset_name}"))
       return result unless result.blank?
 
@@ -120,7 +118,7 @@ module EnumExt::HumanizeHelpers
     end
 
     # enums.t_options_i
-    enum_object.define_singleton_method( "t_#{superset_name}_options_i" ) do
+    base_class.send(enum_plural).define_singleton_method( "t_#{superset_name}_options_i" ) do
       result = evaluate_localizations_to_i( send("t_#{superset_name}") )
       return result unless result.to_h.values.all?(&:blank?)
 
@@ -129,10 +127,10 @@ module EnumExt::HumanizeHelpers
 
 
     # enums.t_superset ( translations or humanizations subset for a given set )
-    enum_object.define_singleton_method( "t_#{superset_name}" ) do
+    base_class.send(enum_plural).define_singleton_method( "t_#{superset_name}" ) do
       return [(["Enum translations are missing. Did you forget to translate #{enum_name}"]*2)].to_h if localizations.blank?
 
-      enum_object.localizations.slice( *enum_object.send(superset_name) )
+      base_class.send(enum_plural).localizations.slice( *base_class.send(enum_plural).send(superset_name) )
     end
   end
 end
