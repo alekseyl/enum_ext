@@ -54,6 +54,8 @@ module EnumExt::SupersetHelpers
     enum_plural = enum_name.to_s.pluralize
 
     self.instance_eval do
+      suffix = send(enum_plural).suffix
+      prefix = send(enum_plural).prefix
       send(enum_plural).supersets.merge!( options.transform_values{ _1.try(:map, &:to_s) || _1.to_s } )
 
       options.each do |superset_name, enum_vals|
@@ -64,11 +66,12 @@ module EnumExt::SupersetHelpers
         # class.enum_wrapper.superset
         send(enum_plural).define_singleton_method(superset_name) { base_class.send(enum_plural).superset_to_enum(*enum_vals) }
 
+        superset_method_name = send(enum_plural).transform_enum_label(label: superset_name)
         # superset_name scope
-        scope superset_name, -> { where( enum_name => send(enum_plural).send(superset_name) ) } if respond_to?(:scope)
+        scope superset_method_name, -> { where( enum_name => send(enum_plural).send(superset_name) ) } if respond_to?(:scope)
 
         # instance.superset_name?
-        define_method "#{superset_name}?" do
+        define_method "#{superset_method_name}?" do
           send(enum_name) && self.class.send(enum_plural).send(superset_name).include?( send(enum_name) )
         end
 

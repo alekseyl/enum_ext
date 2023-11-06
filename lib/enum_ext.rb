@@ -49,33 +49,38 @@ module EnumExt
   def enum(name = nil, values = nil, **options)
     single_enum_definition = name.present?
     extensions = options.delete(:ext)
+    options_dup = options.dup
 
     (ActiveRecord::VERSION::MAJOR >= 7 ? super : super(options)).tap do |multiple_enum_definitions|
       if single_enum_definition
-        enum_ext(name, extensions)
+        replace_enum_with_wrapper(name, options_dup)
+        enum_ext(name, [*extensions])
       else
-        multiple_enum_definitions.each { |enum_name,| enum_ext(enum_name, extensions) }
+        multiple_enum_definitions.each { |enum_name,|
+          replace_enum_with_wrapper(enum_name, options_dup)
+          enum_ext(enum_name, [*extensions])
+        }
       end
     end
   end
 
   # its an extension helper, on the opposite to basic enum method could be called multiple times
   def enum_ext(enum_name, extensions)
-    replace_enum_with_wrapper(enum_name)
-      # [:enum_i, :enum_multi_scopes, enum_supersets: { valid: [:fresh, :cool], invalid: [:stale] }]
+    # [:enum_i, :enum_multi_scopes, enum_supersets: { valid: [:fresh, :cool], invalid: [:stale] }]
     #   --> [:enum_i, :enum_multi_scopes, [:enum_supersets, { valid: [:fresh, :cool], invalid: [:stale] }]
     [*extensions].map { _1.try(:to_a)&.flatten || _1 }
                  .each { |(ext_method, params)| send(*[ext_method, enum_name, params].compact) }
   end
 
   private
-  def replace_enum_with_wrapper(enum_name)
+
+  def replace_enum_with_wrapper(enum_name, options_dup)
     enum_name_plural = enum_name.to_s.pluralize
     return if send(enum_name_plural).is_a?(EnumWrapper)
 
     # enum will freeze values so there is no other way to move extended functionality,
     # than to use wrapper and delegate everything to enum_values
-    enum_wrapper = EnumWrapper.new(send(enum_name_plural), self, enum_name)
+    enum_wrapper = EnumWrapper.new(send(enum_name_plural), self, enum_name, **options_dup)
     # "self" here is a base enum class, so we are replacing original enum definition, with a wrapper
     define_singleton_method(enum_name_plural) { enum_wrapper }
   end

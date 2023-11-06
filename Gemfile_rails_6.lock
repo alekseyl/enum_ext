@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    enum_ext (0.8.0)
+    enum_ext (0.9.0)
       activerecord (>= 5.2.4.3)
 
 GEM
@@ -82,6 +82,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activerecord (< 7)
   amazing_print
   bundler (>= 1.11)
   byebug
