@@ -1,3 +1,8 @@
+# 0.8.1
+* Fixes issue https://github.com/alekseyl/enum_ext/issues/50
+* Better describe for supersets.
+* Multiple readme and comments fixes
+
 # 0.8.0
 * Methods annotations added:
   * Full descriptions: Class.enum.describe(short=true) / Class.enum.describe_short / Class.enum.describe_long / Class.enum.describe_basic

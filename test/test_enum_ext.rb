@@ -2,8 +2,25 @@ require 'test_helper'
 
 class EnumExtTest < ActiveSupport::TestCase
 
+  def setup
+    ActiveRecord::Base.connection.truncate_tables(:enum_ext_mocks)
+  end
+
   def create_all_kids(klass)
     klass.test_types.keys.each { |tk| klass.create( test_type: tk ) }
+  end
+
+  test 'No more closure on helpers issues/50' do
+    EnumExtNoClosure = build_mock_class_without_enum
+    EnumExtNoClosure.extend(EnumExt)
+
+    EnumExtNoClosure.send(:multi_enum_scopes, :test_type)
+
+    EnumExtNoClosure.enum test_type: %i[unit_test spec view controller integration]
+
+    instance = EnumExtNoClosure.create(test_type: :integration)
+    assert_equal(EnumExtNoClosure.with_test_types(:integration), [instance])
+    assert_equal(EnumExtNoClosure.without_test_types(:integration), [])
   end
 
   test 'enum ext: translate_enum' do
@@ -74,6 +91,21 @@ class EnumExtTest < ActiveSupport::TestCase
     assert_not(es.automatable?)
   end
 
+  test 'superset enum methods and definitions' do
+    EnumSupersetsBasic = build_mock_class_without_enum
+
+    EnumSupersetsBasic.enum test_type: %i[unit_test spec view controller integration],
+                                ext: [ enum_supersets: {
+                                  fast: %i[unit_test spec],
+                                  slow: :integration,
+                                }]
+
+    EnumSupersetsBasic.enum_ext( enum_supersets: { automatable: test_types.fast | test_types.slow } )
+
+    assert_equal( EnumSupersetsBasic.test_types.fast, %w[unit_test spec] )
+
+  end
+
   test 'enum ext Annotated' do
     EnumAnnotated = build_mock_class_without_enum
     describers_method_stubs = %i[describe_enum_i describe_mass_assign_enum describe_multi_enum_scopes
@@ -95,6 +127,7 @@ class EnumExtTest < ActiveSupport::TestCase
     assert_nothing_raised { EnumAnnotated.test_types.describe }
     assert_nothing_raised { EnumAnnotated.test_types.describe(true) }
   end
+
   # test 'enum ext prefixes' do
   #   EnumSupersetsPref = build_mock_class_without_enum
   #
@@ -170,13 +203,14 @@ class EnumExtTest < ActiveSupport::TestCase
     # class:
     #   - high_level, raw_level ( as corresponding scopes )
     #   - with_test_types, without_test_types also scopes but with params, allows to combine and negate defined sets and enum values
-    #   - raw_level_test_types (= [:unit_test, :spec]), high_level_test_types (=[:view, :controller, :integration])
-    #   - raw_level_test_types_i (= [0,1]),  high_level_test_types_i (= [2,3,4])
+    #
+    # available via enum wrapper:
+    #  - test_types.raw_level (= [:unit_test, :spec]), test_types.high_level (=[:view, :controller, :integration])
     #
     # will work correctly only when translate or humanize called
-    #   - t_raw_level_test_types, t_high_level_test_types - subset of translation or humanization rules
-    #   - t_raw_level_test_types_options, t_high_level_test_types_options - translated options ready for form select inputs
-    #   - t_raw_level_test_types_options_i, t_high_level_test_types_options_i - same as above but used integer in selects not strings, usefull in Active Admin
+    #   - test_types.t_raw_level, test_types.t_high_level - subset of translation or humanization rules
+    #   - test_types.t_raw_level_options, test_types.t_high_level_options - translated options ready for form select inputs
+    #   - test_types.t_raw_level_options_i, test_types.t_high_level_options_i - same as above but used integer in selects not strings, useful in Active Admin
     EnumSet.enum_ext :test_type, enum_supersets: {
       raw_level: [:unit_test, :spec],
       high_level: [:view, :controller, :integration]
@@ -188,6 +222,8 @@ class EnumExtTest < ActiveSupport::TestCase
         minitest: ( test_types.raw_level | test_types.high_level )
       }
     end
+
+    byebug
 
     assert_equal(
       {:raw_level  => %w[unit_test spec],
@@ -218,12 +254,12 @@ class EnumExtTest < ActiveSupport::TestCase
     I18n.locale = :en
     EnumH = build_mock_class
     # adds to instance:
-    #  - t_test_types
+    #  - t_test_type
     #
-    # adds to class:
-    #  - t_test_types - as given or generated values
-    #  - t_test_types_options - translated enum values options for select input
-    #  - t_test_types_options_i - same as above but use int values with translations good for ActiveAdmin filter e.t.c.
+    # available via enum wrapper:
+    #  - test_types.localizations - as given or generated values
+    #  - test_types.t_options - translated enum values options for select input
+    #  - test_types.t_options_i - same as above but use int values with translations good for ActiveAdmin filter e.t.c.
     EnumH.instance_eval do
       humanize_enum :test_type,
                     unit_test: 'Unit::Test',
@@ -261,18 +297,17 @@ class EnumExtTest < ActiveSupport::TestCase
                    ["Cannot create option for controller because of a lambda", 3],
                    ["Integration", 4]], EnumH.test_types.t_options_i )
 
-
   end
 
   test 'humanize with block' do
     EnumHB = build_mock_class
     # adds to instance:
-    #  - t_test_types
+    #  - t_test_type
     #
-    # adds to class:
-    #  - t_test_types - as given or generated values
-    #  - t_test_types_options - translated enum values options for select input
-    #  - t_test_types_options_i - same as above but use int values with translations good for ActiveAdmin filter e.t.c.
+    # adds to enum wrapper:
+    #  - test_types.localizations - as given or generated values
+    #  - test_types.t_options - translated enum values options for select input
+    #  - test_types.t_options_i - same as above but use int values with translations good for ActiveAdmin filter e.t.c.
     EnumHB.instance_eval do
       humanize_enum :test_type do
         I18n.t("activerecord.attributes.enum_ext_test/enum_t.test_types.#{test_type}")
@@ -307,12 +342,12 @@ class EnumExtTest < ActiveSupport::TestCase
     I18n.locale = :en
     EnumT = build_mock_class
     # adds to instance:
-    #  - t_test_types
+    #  - t_test_type
     #
-    # adds to class:
-    #  - t_test_types - as given or generated values
-    #  - t_test_types_options - translated enum values options for select input
-    #  - t_test_types_options_i - same as above but use int values with translations good for ActiveAdmin filter e.t.c.
+    # adds to enum wrapper:
+    #  - test_types.localizations - raw definitions of localizations
+    #  - test_types.t_options - translated enum values options for select input
+    #  - test_types.t_options_i - same as above but use int values with translations good for ActiveAdmin filter e.t.c.
     EnumT.translate_enum(:test_type)
     et = EnumT.create(test_type: :integration)
     assert_equal( 'integration tests', et.t_test_type )

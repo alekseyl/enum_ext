@@ -2,15 +2,15 @@
 # but have no idea how to do this in a super-neat way, so it a little bit chaotic and experimental
 module EnumExt::Annotated
 
-  # call it to see what's your enum current opitons
+  # call it to see what's your enum current options are
   def describe_basic
     puts yellow( "Basic #{enum_name} definition: \n" )
     print_hash(enum_values)
   end
 
-  # call it to see all enum extensions defined.
+  # call it to see which enum extensions are defined.
   def describe_long
-    puts yellow( "\nEnumExt extensions:" )
+    puts yellow( "\n\nEnumExt extensions:" )
 
     puts [
       describe_enum_i(false),
@@ -80,10 +80,19 @@ module EnumExt::Annotated
     description = if enabled_features[:supersets].blank?
       red( "\nSupersets not used!\n" )
     else
+      superset_method = enabled_features[:supersets].keys.first
       red( "\nSupersets definitions:\n" ) << inspect_hash(enabled_features[:supersets]) << <<~SUPERSETS
+          
           # Instance methods added: #{enabled_features[:supersets].keys.join("?, ")}?
-   
-          # Class level methods added: #{enabled_features[:supersets].keys.join(", ")}
+          # Usage:
+          #{black("instance")}.#{cyan(superset_method)}?
+          # Will be equal true if any of: #{supersets_raw[superset_method].join("?, ")}? is true
+          
+          # Class level methods/scopes added: #{enabled_features[:supersets].keys.join(", ")}
+          # Usage:
+          #{black(base_class.to_s)}.#{cyan(superset_method)}
+          # Will be getting all instances with #{enum_name} equals to any of: #{supersets_raw[superset_method].join(", ")}
+
        SUPERSETS
     end
 
