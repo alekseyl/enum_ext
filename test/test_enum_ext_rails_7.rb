@@ -16,6 +16,19 @@ class EnumExtTestRails7 < ActiveSupport::TestCase
     end
   end
 
+  test 'superset with suffix and prefix' do
+    EnumSupersetsSuffixAndPrefix = build_mock_class_without_enum
+
+    EnumSupersetsSuffixAndPrefix.enum :test_type, %i[unit_test spec view controller integration],
+                                      suffix: true, prefix: :cool,
+                                      ext: [:enum_i, enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+
+    es = EnumSupersetsSuffixAndPrefix.create( test_type: :integration )
+
+    assert(es.cool_slow_test_type?)
+    assert_equal(EnumSupersetsSuffixAndPrefix.cool_slow_test_type.first, es)
+  end
+
 end if ActiveRecord::VERSION::MAJOR >= 7
 
 

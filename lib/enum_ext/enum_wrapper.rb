@@ -5,12 +5,12 @@ class EnumExt::EnumWrapper
   include EnumExt::Annotated
 
   # supersets is storing exact definitions, if you need a raw mapping use class.statuses.superset_statuses
-  attr_reader :enum_values, :supersets, :supersets_raw, :t_options_raw, :localizations, :base_class, :enum_name
+  attr_reader :enum_values, :supersets, :supersets_raw, :t_options_raw, :localizations, :base_class, :enum_name, :suffix, :prefix
 
   delegate_missing_to :enum_values
   delegate :inspect, to: :enum_values
 
-  def initialize(enum_values, base_class, enum_name)
+  def initialize(enum_values, base_class, enum_name, **options)
     @enum_values = enum_values
     @supersets = ActiveSupport::HashWithIndifferentAccess.new
     @supersets_raw = ActiveSupport::HashWithIndifferentAccess.new
@@ -20,6 +20,8 @@ class EnumExt::EnumWrapper
 
     @base_class = base_class
     @enum_name = enum_name
+    @suffix = options[:suffix] || options[:_suffix]
+    @prefix = options[:prefix] || options[:_prefix]
   end
 
   #  ext_sets_to_kinds( :ready_for_shipment, :delivery_set ) -->
@@ -51,6 +53,18 @@ class EnumExt::EnumWrapper
 
   alias_method :t, :localizations
 
+  def transform_enum_label(label:)
+    _prefix = if prefix
+      prefix == true ? "#{enum_name}_" : "#{prefix}_"
+    end
+
+    _suffix = if suffix
+      suffix == true ? "_#{enum_name}" : "_#{suffix}"
+    end
+
+    "#{_prefix}#{label}#{_suffix}"
+  end
+
   private
 
   def evaluate_localizations(t_enum_set)
@@ -74,5 +88,7 @@ class EnumExt::EnumWrapper
       [ translation, self[name] ]
     end
   end
+
+
 
 end

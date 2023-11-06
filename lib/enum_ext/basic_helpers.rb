@@ -73,11 +73,11 @@ module EnumExt::BasicHelpers
 
   def mass_assign_enum( *enums_names )
     enums_names.each do |enum_name|
-      enum_vals = self.send( enum_name.to_s.pluralize )
-
-      enum_vals.keys.each do |enum_el|
-        define_singleton_method( "#{enum_el}!" ) do
-          self.update_all( {enum_name => enum_vals[enum_el]}.merge( self.column_names.include?('updated_at') ? {updated_at: Time.now} : {} ))
+      enum_plural = enum_name.to_s.pluralize
+      self.send(enum_plural).keys.each do |label|
+        method_name = self.send(enum_plural).transform_enum_label(label: label)
+        define_singleton_method( "#{method_name}!" ) do
+          self.update_all( {enum_name => self.send(enum_plural)[label]}.merge( self.column_names.include?('updated_at') ? {updated_at: Time.now} : {} ))
         end
       end
     end

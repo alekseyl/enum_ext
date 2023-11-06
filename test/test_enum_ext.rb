@@ -100,7 +100,9 @@ class EnumExtTest < ActiveSupport::TestCase
                                   slow: :integration,
                                 }]
 
-    EnumSupersetsBasic.enum_ext( enum_supersets: { automatable: test_types.fast | test_types.slow } )
+    EnumSupersetsBasic.instance_eval do
+       enum_ext( :test_type, enum_supersets: { automatable: test_types.fast | test_types.slow } )
+    end
 
     assert_equal( EnumSupersetsBasic.test_types.fast, %w[unit_test spec] )
 
@@ -128,17 +130,98 @@ class EnumExtTest < ActiveSupport::TestCase
     assert_nothing_raised { EnumAnnotated.test_types.describe(true) }
   end
 
-  # test 'enum ext prefixes' do
-  #   EnumSupersetsPref = build_mock_class_without_enum
-  #
-  #   EnumSupersetsPref.enum test_type: %i[unit_test spec view controller integration],
-  #                      _suffix: true,
-  #                      ext: [:enum_i, enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
-  #
-  #   es = EnumSupersetsPref.create( test_type: :integration )
-  #
-  #   assert(es.slow_test_type?)
-  # end
+  test 'superset with prefix' do
+    EnumSupersetsPref = build_mock_class_without_enum
+
+    EnumSupersetsPref.enum test_type: %i[unit_test spec view controller integration],
+                       _prefix: true,
+                       ext: [:enum_i, enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+
+    es = EnumSupersetsPref.create( test_type: :integration )
+
+    assert(es.test_type_slow?)
+    assert_equal(EnumSupersetsPref.test_type_slow.first, es)
+  end
+
+  test 'superset with suffix' do
+    EnumSupersetsSuffix = build_mock_class_without_enum
+
+    EnumSupersetsSuffix.enum test_type: %i[unit_test spec view controller integration],
+                           _suffix: true,
+                           ext: [:enum_i, enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+
+    es = EnumSupersetsSuffix.create( test_type: :integration )
+
+    assert(es.slow_test_type?)
+    assert_equal(EnumSupersetsSuffix.slow_test_type.first, es)
+  end
+
+  test 'superset with suffix and prefix' do
+    EnumSupersetsSuffixAndPrefix = build_mock_class_without_enum
+
+    EnumSupersetsSuffixAndPrefix.enum test_type: %i[unit_test spec view controller integration],
+                             _suffix: true, _prefix: :cool,
+                             ext: [:enum_i, enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+
+    es = EnumSupersetsSuffixAndPrefix.create( test_type: :integration )
+
+    assert(es.cool_slow_test_type?)
+    assert_equal(EnumSupersetsSuffixAndPrefix.cool_slow_test_type.first, es)
+  end
+
+  test 'superset with custom prefix' do
+    EnumSupersetsCustomPref = build_mock_class_without_enum
+
+    EnumSupersetsCustomPref.enum test_type: %i[unit_test spec view controller integration],
+                           _prefix: :tests,
+                           ext: [:enum_i, enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+
+    es = EnumSupersetsCustomPref.create( test_type: :integration )
+
+    assert(es.tests_slow?)
+    assert_equal(EnumSupersetsCustomPref.tests_slow.first, es)
+  end
+
+  test 'enum ext custom suffix' do
+    EnumSupersetsCustomSuffix = build_mock_class_without_enum
+
+    EnumSupersetsCustomSuffix.enum test_type: %i[unit_test spec view controller integration],
+                             _suffix: :tests,
+                             ext: [enum_supersets: {fast: %i[unit_test spec], slow: :integration}]
+
+    es = EnumSupersetsCustomSuffix.create( test_type: :integration )
+
+    assert(es.slow_tests?)
+    assert_equal(EnumSupersetsCustomSuffix.slow_tests.first, es)
+  end
+
+  test 'mass assign with suffix' do
+    MassAssignWithSuffix = build_mock_class_without_enum
+
+    # adds class methods with bang: unit_test!, spec! e.t.c
+    MassAssignWithSuffix.enum test_type: %i[unit_test spec view controller integration],
+                              _suffix: true, ext: [:mass_assign_enum]
+
+    ema = MassAssignWithSuffix.create(test_type: :spec)
+
+    assert( ema.spec_test_type? )
+    MassAssignWithSuffix.spec_test_type.integration_test_type!
+    assert( MassAssignWithSuffix.integration_test_type.exists?( ema.id ) )
+  end
+
+  test 'mass assign with prefix' do
+    MassAssignWithPrefix = build_mock_class_without_enum
+
+    # adds class methods with bang: unit_test!, spec! e.t.c
+    MassAssignWithPrefix.enum test_type: %i[unit_test spec view controller integration],
+                              _prefix: true, ext: [:mass_assign_enum]
+
+    ema = MassAssignWithPrefix.create(test_type: :spec)
+
+    assert( ema.test_type_spec? )
+    MassAssignWithPrefix.test_type_spec.test_type_integration!
+    assert( MassAssignWithPrefix.test_type_integration.exists?( ema.id ) )
+  end
 
   test 'enum_i' do
     EnumI = build_mock_class
@@ -146,7 +229,7 @@ class EnumExtTest < ActiveSupport::TestCase
 
     EnumI.test_types.each_value do |tt|
       ei = EnumI.new(test_type: tt)
-      assert_equal( EnumI.test_types[ei.test_type], ei.test_type_i  )
+      assert_equal(EnumI.test_types[ei.test_type], ei.test_type_i)
     end
   end
 
@@ -222,8 +305,6 @@ class EnumExtTest < ActiveSupport::TestCase
         minitest: ( test_types.raw_level | test_types.high_level )
       }
     end
-
-    byebug
 
     assert_equal(
       {:raw_level  => %w[unit_test spec],
