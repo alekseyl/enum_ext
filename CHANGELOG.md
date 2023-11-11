@@ -1,3 +1,6 @@
+# 0.9.1
+* fix https://github.com/alekseyl/enum_ext/issues/53 
+
 # 0.9
 * supersets works fine and same way with prefixes and suffixes as usual enum does
 
