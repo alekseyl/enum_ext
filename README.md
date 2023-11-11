@@ -334,7 +334,6 @@ rake test TEST=test/test_enum_ext.rb TESTOPTS="--name=/bb/"
 ## Development
 
 ## TODO
-[] better support for suffix/prefix as enum does
 [] add global config and allow global extension
 
 ## Contributing

@@ -8,7 +8,7 @@ module EnumExt::BasicHelpers
   #
   # Rem. Will not define helper when enum values are strings, and will print warning
   def enum_i( enum_name )
-    return puts(<<~NOTINTEGER) if columns_hash[enum_name.to_s].type != :integer
+    return puts(<<~NOTINTEGER) if table_exists? && columns_hash[enum_name.to_s].type != :integer
       ---------------------NOTINTEGER WARNING!---------------------------
       #{enum_name} is not an integer column, so enum_i helper useless and method will not be defined
     NOTINTEGER
