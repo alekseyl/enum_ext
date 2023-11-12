@@ -1,3 +1,6 @@
+# 1.0.0.rc
+* global configuration added
+
 # 0.9.1
 * fix https://github.com/alekseyl/enum_ext/issues/53 
 

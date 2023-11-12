@@ -1,4 +1,5 @@
 require "enum_ext/version"
+require "enum_ext/config"
 require "enum_ext/annotated"
 require "enum_ext/enum_wrapper"
 require "enum_ext/humanize_helpers"
@@ -16,24 +17,6 @@ require "enum_ext/superset_helpers"
 #   has_many :requests
 # end
 
-puts <<~DEPRECATION
-  ---------------------DEPRECATION WARNING---------------------------
-  There are TWO MAJOR breaking changes coming into the next major version :
-  First deprecation: all major DSL moving class methods to 
-  enum, just for the sake of clarity:  
-
-  Ex for enum named kinds it could look like this: 
-
-    Class.ext_sets_to_kinds         --> Class.kinds.superset_to_basic
-    Class.ext_kinds                 --> Class.kinds.supersets
-    Class.all_kinds_defs            --> Class.kinds.all
-   
-    Class.t_kinds                   --> Class.kinds.t
-    Class.t_kinds_options           --> Class.kinds.t_options
-    Class.t_named_set_kinds_options --> Class.kinds.t_named_set_options
-
-DEPRECATION
-
 module EnumExt
   include HumanizeHelpers   # translate and humanize
   include SupersetHelpers   # enum_supersets
@@ -48,7 +31,7 @@ module EnumExt
   # so calling super should be different based on ActiveRecord major version
   def enum(name = nil, values = nil, **options)
     single_enum_definition = name.present?
-    extensions = options.delete(:ext)
+    extensions = [*EnumExt.config.default_helpers, *options.delete(:ext)]
     options_dup = options.dup
 
     (ActiveRecord::VERSION::MAJOR >= 7 ? super : super(options)).tap do |multiple_enum_definitions|
