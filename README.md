@@ -320,6 +320,20 @@ And per extension methods (describe_enum_i, e.t.c)
 ```
 ![img_3.png](img_3.png)
 
+## Configuration
+```ruby
+EnumExt.configure do |config|
+  # the name of class which will have EnumExt extended globally
+  # default: nil
+  config.application_record_class = ApplicationRecord 
+  # default helpers, will be added to every enum ext definitions
+  # default value: [:multi_enum_scopes, :mass_assign_enum]
+  config.default_helpers = [:multi_enum_scopes, :mass_assign_enum]
+end
+
+```
+
+
 ## Tests
 Starting version 0.6 added support for rails 7+ enum definitions, that's making testing a little bit not that easy as running `rake test`.
 Now testings are done via `docker-compose up`. Look closer to Dockerfiles and `docker-compose.yml` 
